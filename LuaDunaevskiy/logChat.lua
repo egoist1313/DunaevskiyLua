@@ -1,5 +1,5 @@
-	-- РђРІС‚РѕСЂ: AlexDunaevskiy, 2025  https://t.me/+VxorOlng8OcwMjUy
-	-- РЎРєСЂРёРїС‚ "LogChat" РґР»СЏ Р»РѕРіРёСЂРѕРІР°РЅРёСЏ С‡Р°С‚Р° РІ SA-MP
+	-- Автор: AlexDunaevskiy, 2025  https://t.me/+VxorOlng8OcwMjUy
+	-- Скрипт "LogChat" для логирования чата в SA-MP
 	local script_name = 'LogChat'
 	local script_version = '25/03/2025'
 	require "lib.sampfuncs"
@@ -12,7 +12,7 @@
 	encoding.default = 'CP1251'
 	local u8 = encoding.UTF8
 
-	-- РџСѓС‚Рё Рє С„Р°Р№Р»Р°Рј Рё РїР°РїРєР°Рј
+	-- Пути к файлам и папкам
 	local log_folder = getWorkingDirectory() .. "\\logChat"
 	local sms_log_file = log_folder .. "\\sms.txt"
 	local announcement_log_file = log_folder .. "\\announcement.txt"
@@ -22,10 +22,10 @@
 	local archive_folder = log_folder .. "\\archives"
 	local settings_file = log_folder .. "\\logChat_settings.json"
 	local kills_log_file = log_folder .. "\\kills.txt"
-	-- РџРµСЂРµРјРµРЅРЅС‹Рµ СЃРѕСЃС‚РѕСЏРЅРёСЏ
+	-- Переменные состояния
 	local main_window_state = imgui.ImBool(false)
 	local blacklist_window_state = imgui.ImBool(false)
-	local active_tab = 1 -- 1 = SMS, 2 = РћР±СЉСЏРІР»РµРЅРёСЏ, 3 = РђРґРјРёРЅРёСЃС‚СЂР°С‚РѕСЂ, 4 = Р’СЃСЏ РёСЃС‚РѕСЂРёСЏ, 5 = Р¤СЂР°РєС†РёСЏ, 6 = РђСЂС…РёРІС‹, 7 = РќР°СЃС‚СЂРѕР№РєРё
+	local active_tab = 1 -- 1 = SMS, 2 = Объявления, 3 = Администратор, 4 = Вся история, 5 = Фракция, 6 = Архивы, 7 = Настройки
 	local search_text = imgui.ImBuffer(256)
 	local block_announcements = imgui.ImBool(false)
 	local block_admin_messages = imgui.ImBool(false)
@@ -43,8 +43,8 @@
 	local font_needs_update = false
 	local is_first_run = true
 	local just_opened = false
-	local max_kills = {} -- РҐСЂР°РЅРёР»РёС‰Рµ РјР°РєСЃРёРјР°Р»СЊРЅРѕРіРѕ С‡РёСЃР»Р° РґР»СЏ РєР°Р¶РґРѕРіРѕ РёРіСЂРѕРєР°
-	-- РћРїС‚РёРјРёР·РёСЂРѕРІР°РЅРЅС‹Рµ СЃС‚СЂСѓРєС‚СѓСЂС‹
+	local max_kills = {} -- Хранилище максимального числа для каждого игрока
+	-- Оптимизированные структуры
 	local line_counts = {}
 	local log_contents = {}
 	local color_cache = {}
@@ -54,57 +54,57 @@
 	local current_selected_file = nil
 	local prevTextDrawState = nil
 
-	-- Р§РµСЂРЅС‹Р№ СЃРїРёСЃРѕРє РєР°Рє РјРЅРѕР¶РµСЃС‚РІРѕ
+	-- Черный список как множество
 	local blacklist = {}
 	local blacklist_enabled = imgui.ImBool(false)
 	local blacklist_log_enabled = imgui.ImBool(true)
 	local blacklist_input_nick = imgui.ImBuffer(32)
 
-	-- РљРѕРЅСЃС‚Р°РЅС‚С‹
-	local ads = {'РћР±СЉСЏРІР»РµРЅРёРµ:', 'Р РµРґР°РєС†РёСЏ News'}
-	local admin_phrases = {'РђРґРјРёРЅРёСЃС‚СЂР°С‚РѕСЂ:', 'РѕС‚ Р°РґРјРёРЅРёСЃС‚СЂР°С‚РѕСЂР°'}
+	-- Константы
+	local ads = {'Объявление:', 'Редакция News'}
+	local admin_phrases = {'Администратор:', 'от администратора'}
 
-	-- РўР°Р±Р»РёС†Р° СЃРѕРѕС‚РІРµС‚СЃС‚РІРёР№ С†РІРµС‚РѕРІ РґР»СЏ С‚РёРїРѕРІ СЃРѕРѕР±С‰РµРЅРёР№
+	-- Таблица соответствий цветов для типов сообщений
 	local color_mappings = {
-		sms = {"{FFFFFFFFFFFF00FF}", "{FFFF00FF}"}, -- SMS-СЃРѕРѕР±С‰РµРЅРёСЏ
-		announcements = {"{FF8C37FF}", "{00D900FF}", "{FFFFFFFFFF8C37FF}", "{FFFFFFFF00D900FF}"}, -- РћР±СЉСЏРІР»РµРЅРёСЏ
-		news = {"{2641FEFF}", "{FFFFFFFF2641FEFF}"}, -- РќРѕРІРѕСЃС‚Рё
-		admin = {"{FF6347FF}", "{FFFFFFFFFF6347FF}"}, -- РђРґРјРёРЅ-СЃРѕРѕР±С‰РµРЅРёСЏ
-		faction = {"{01FCFFFF}", "{FFFFFFFF01FCFFFF}"}, -- Р¤СЂР°РєС†РёРѕРЅРЅС‹Р№ С‡Р°С‚
-		state_news = {"{FFFFFFFFFFFFFFFF}", "{FFFFFFFF}"}, -- Р“РѕСЃСѓРґР°СЂСЃС‚РІРµРЅРЅС‹Рµ РЅРѕРІРѕСЃС‚Рё
-		kills = {"{FFFFFFFF}", "{FF0000FF}"} -- Р¦РІРµС‚Р° РґР»СЏ Р·Р°РїРёСЃРµР№ СѓР±РёР№СЃС‚РІ
+		sms = {"{FFFFFFFFFFFF00FF}", "{FFFF00FF}"}, -- SMS-сообщения
+		announcements = {"{FF8C37FF}", "{00D900FF}", "{FFFFFFFFFF8C37FF}", "{FFFFFFFF00D900FF}"}, -- Объявления
+		news = {"{2641FEFF}", "{FFFFFFFF2641FEFF}"}, -- Новости
+		admin = {"{FF6347FF}", "{FFFFFFFFFF6347FF}"}, -- Админ-сообщения
+		faction = {"{01FCFFFF}", "{FFFFFFFF01FCFFFF}"}, -- Фракционный чат
+		state_news = {"{FFFFFFFFFFFFFFFF}", "{FFFFFFFF}"}, -- Государственные новости
+		kills = {"{FFFFFFFF}", "{FF0000FF}"} -- Цвета для записей убийств
 	}
 
-	-- РќР°СЃС‚СЂРѕР№РєРё С„СЂР°РєС†РёР№ СЃ РїСЂРµРґРІР°СЂРёС‚РµР»СЊРЅРѕ СЃРєРѕРјРїРёР»РёСЂРѕРІР°РЅРЅС‹РјРё С€Р°Р±Р»РѕРЅР°РјРё
+	-- Настройки фракций с предварительно скомпилированными шаблонами
 	local faction_settings = {
-		yakudza = {color = "{01FCFFFF}", phrases = {'Р’Р°РєР°СЃСЋ', 'РЎСЏС‚СЌР№', 'РљС‘РґР°Р№', 'Р¤СѓРєСѓ-С…РѕРјР±СѓС‚Рµ', 'Р’Р°РєР°РіР°СЃРёСЂР°', 'РЎРѕ-С…РѕРјР±СѓС‚Рµ', 'РљР°РјР±Сѓ', 'РЎР°Р№РєРѕ-РєРѕРјРѕРЅ', 'РћСЏРґР·Рё', 'РљСѓРјРёС‚Рµ'}, block = imgui.ImBool(false)},
-		ballas = {color = "{01FCFFFF}", phrases = {'Р‘Р»Р°Р№Рґ', 'Р‘Р°СЃС‚РµСЂ', 'РљСЂСЌРєРµСЂ', 'Р“СѓРЅ Р±СЂРѕ', 'РђРї Р±СЂРѕ', 'Р“Р°РЅРіСЃС‚РµСЂ', 'Р¤РµРґРµСЂР°Р» Р±Р»РѕРє', 'Р¤РѕР»РєСЃ', 'Р Р°Р№С‡ РЅРёРіР°', 'Р‘РёРі РІРёР»Р»Рё'}, block = imgui.ImBool(false)},
-		grove = {color = "{01FCFFFF}", phrases = {'РџР»СЌР№СЏ', 'РҐР°СЃС‚Р»Р°', 'РљРёР»Р»Р°', 'Р®РѕРЅРі Р“', 'Р“Р°РЅРіСЃС‚Р°', 'Рћ. Р“.', 'РњРѕР±СЃС‚Р°', 'Р”Рµ РєРёРЅРі', 'Р›РµРіРµРЅРґ', 'РњСЌРґ РґРѕРі'}, block = imgui.ImBool(false)},
-		aztec = {color = "{01FCFFFF}", phrases = {'РџРµСЂСЂРѕ', 'РўРёСЂР°РґРѕСЂ', 'Р“РµС‚С‚РѕСЂ', 'Р›Р°СЃ Р“РµСЂСЂР°СЃ', 'РњРёСЂРёРЅРґРѕ', 'РЎР°Р±РёРѕ', 'РРЅРІР°СЃРѕСЂ', 'РўРµСЃРѕСЂРµСЂРѕ', 'РќРµСЃС‚СЂРѕ', 'РџР°РґСЂРµ'}, block = imgui.ImBool(false)},
-		vagos = {color = "{01FCFFFF}", phrases = {'РќРѕРІРёС‚Рѕ', 'РћСЂРґРёРЅР°СЂРёРѕ', 'Р›РѕРєР°Р»', 'Р’РµСЂРёС„РёРєР°РґРѕ', 'Р‘Р°РЅРґРёС‚Рѕ', 'V. E. G.', 'РђСЃСЃРµСЃРёРЅРѕ', 'Р›РёРґРµСЂ V. E. G.', 'РџР°РґСЂРёРЅРѕ', 'РџР°РґСЂРµ'}, block = imgui.ImBool(false)},
-		rifa = {color = "{01FCFFFF}", phrases = {'Р›Р°РґСЂРѕРЅ', 'РќРѕРІР°С‚Рѕ', 'РђРјРёРіРѕ', 'РњР°С‡Рѕ', 'Р”Р¶СѓРЅРёРѕСЂ', 'Р­СЂРјР°РЅРѕ', 'Р‘Р°РЅРґРёРґРѕ', 'РђСѓС‚РѕСЂРёРґРёРґ', 'РђРґР¶СѓРЅС‚Рѕ', 'РџР°РґСЂРµ'}, block = imgui.ImBool(false)},
-		lcn = {color = "{01FCFFFF}", phrases = {'РќРѕРІРёС†РёРѕ', 'РђСЃСЃРѕСЃРёР°С‚Рѕ', 'РЎРѕРјР±Р°С‚С‚РµРЅС‚Рµ', 'РЎРѕР»РґР°С‚Рѕ', 'Р‘РѕРµС†', 'РЎРѕС‚С‚Рѕ РєР°РїРѕ', 'РљР°РїРѕ', 'РњР»Р°РґС€РёР№ Р±РѕСЃСЃ', 'РљРѕРЅСЃРёР»СЊРµСЂРµ', 'Р”РѕРЅ'}, block = imgui.ImBool(false)},
-		russian_mafia = {color = "{01FCFFFF}", phrases = {'РЁРЅС‹СЂСЊ', 'Р¤СЂР°РµСЂ', 'Р‘С‹Рє', 'Р‘Р°СЂС‹РіР°', 'Р‘Р»Р°С‚РЅРѕР№', 'РЎРІРѕСЏРє', 'Р‘СЂР°С‚РѕРє', 'Р’РѕСЂ', 'Р’РѕСЂ РІ Р·Р°РєРѕРЅРµ', 'РђРІС‚РѕСЂРёС‚РµС‚'}, block = imgui.ImBool(false)},
-		reporters = {color = "{01FCFFFF}", phrases = {'РЎС‚Р°Р¶РµСЂ', 'Р—РІСѓРєРѕРѕРїРµСЂР°С‚РѕСЂ', 'Р—РІСѓРєРѕСЂРµР¶РёСЃСЃРµСЂ', 'Р РµРїРѕСЂС‚РµСЂ', 'Р’РµРґСѓС‰РёР№', 'Р РµРґР°РєС‚РѕСЂ', 'Р“Р». СЂРµРґР°РєС‚РѕСЂ', 'РўРµС…. РґРёСЂРµРєС‚РѕСЂ', 'РџСЂРѕРіСЂР°РјРјРЅС‹Р№ РґРёСЂРµРєС‚РѕСЂ', 'Р”РёСЂРµРєС‚РѕСЂ'}, block = imgui.ImBool(false)},
-		instructors = {color = "{01FCFFFF}", phrases = {'РЎС‚Р°Р¶РµСЂ', 'РљРѕРЅСЃСѓР»СЊС‚Р°РЅС‚', 'Р­РєР·Р°РјРµРЅР°С‚РѕСЂ', 'РњР». РёРЅСЃС‚СЂСѓРєС‚РѕСЂ', 'РРЅСЃС‚СЂСѓРєС‚РѕСЂ', 'РљРѕРѕСЂРґРёРЅР°С‚РѕСЂ', 'РњР». РјРµРЅРµРґР¶РµСЂ', 'РЎС‚. РјРµРЅРµРґР¶РµСЂ', 'Р”РёСЂРµРєС‚РѕСЂ', 'РЈРїСЂР°РІР»СЏСЋС‰РёР№'}, block = imgui.ImBool(false)},
-		medics = {color = "{01FCFFFF}", phrases = {'РРЅС‚РµСЂРЅ', 'РЎР°РЅРёС‚Р°СЂ', 'РњРµРґ. Р±СЂР°С‚', 'РЎРїР°СЃР°С‚РµР»СЊ', 'РќР°СЂРєРѕР»РѕРі', 'Р”РѕРєС‚РѕСЂ', 'РџСЃРёС…РѕР»РѕРі', 'РҐРёСЂСѓСЂРі', 'Р—Р°Рј. РіР»Р°РІ. РІСЂР°С‡Р°', 'Р“Р»Р°РІ. РІСЂР°С‡'}, block = imgui.ImBool(false)},
-		army = {color = "{01FCFFFF}", phrases = {'Р СЏРґРѕРІРѕР№', 'Р•С„СЂРµР№С‚РѕСЂ', 'РњР». СЃРµСЂР¶Р°РЅС‚', 'РЎРµСЂР¶Р°РЅС‚', 'РЎС‚. СЃРµСЂР¶Р°РЅС‚', 'РЎС‚Р°СЂС€РёРЅР°', 'РџСЂР°РїРѕСЂС‰РёРє', 'РњР». Р»РµР№С‚РµРЅР°РЅС‚', 'Р›РµР№С‚РµРЅР°РЅС‚', 'РЎС‚. Р»РµР№С‚РµРЅР°РЅС‚', 'РљР°РїРёС‚Р°РЅ', 'РњР°Р№РѕСЂ', 'РџРѕРґРїРѕР»РєРѕРІРЅРёРє', 'РџРѕР»РєРѕРІРЅРёРє', 'Р“РµРЅРµСЂР°Р»'}, block = imgui.ImBool(false)},
-		police = {color = "{01FCFFFF}", phrases = {'РљР°РґРµС‚', 'РћС„РёС†РµСЂ', 'РњР». РЎРµСЂР¶Р°РЅС‚', 'РЎРµСЂР¶Р°РЅС‚', 'РџСЂР°РїРѕСЂС‰РёРє', 'РЎС‚. РїСЂР°РїРѕСЂС‰РёРє', 'РњР». Р»РµР№С‚РµРЅР°РЅС‚', 'Р›РµР№С‚РµРЅР°РЅС‚', 'РЎС‚. Р»РµР№С‚РµРЅР°РЅС‚', 'РљР°РїРёС‚Р°РЅ', 'РњР°Р№РѕСЂ', 'РџРѕРґРїРѕР»РєРѕРІРЅРёРє', 'РџРѕР»РєРѕРІРЅРёРє', 'РЁРµСЂРёС„'}, block = imgui.ImBool(false)},
+		yakudza = {color = "{01FCFFFF}", phrases = {'Вакасю', 'Сятэй', 'Кёдай', 'Фуку-хомбуте', 'Вакагасира', 'Со-хомбуте', 'Камбу', 'Сайко-комон', 'Оядзи', 'Кумите'}, block = imgui.ImBool(false)},
+		ballas = {color = "{01FCFFFF}", phrases = {'Блайд', 'Бастер', 'Крэкер', 'Гун бро', 'Ап бро', 'Гангстер', 'Федерал блок', 'Фолкс', 'Райч нига', 'Биг вилли'}, block = imgui.ImBool(false)},
+		grove = {color = "{01FCFFFF}", phrases = {'Плэйя', 'Хастла', 'Килла', 'Юонг Г', 'Гангста', 'О. Г.', 'Мобста', 'Де кинг', 'Легенд', 'Мэд дог'}, block = imgui.ImBool(false)},
+		aztec = {color = "{01FCFFFF}", phrases = {'Перро', 'Тирадор', 'Геттор', 'Лас Геррас', 'Мириндо', 'Сабио', 'Инвасор', 'Тесореро', 'Нестро', 'Падре'}, block = imgui.ImBool(false)},
+		vagos = {color = "{01FCFFFF}", phrases = {'Новито', 'Ординарио', 'Локал', 'Верификадо', 'Бандито', 'V. E. G.', 'Ассесино', 'Лидер V. E. G.', 'Падрино', 'Падре'}, block = imgui.ImBool(false)},
+		rifa = {color = "{01FCFFFF}", phrases = {'Ладрон', 'Новато', 'Амиго', 'Мачо', 'Джуниор', 'Эрмано', 'Бандидо', 'Ауторидид', 'Аджунто', 'Падре'}, block = imgui.ImBool(false)},
+		lcn = {color = "{01FCFFFF}", phrases = {'Новицио', 'Ассосиато', 'Сомбаттенте', 'Солдато', 'Боец', 'Сотто капо', 'Капо', 'Младший босс', 'Консильере', 'Дон'}, block = imgui.ImBool(false)},
+		russian_mafia = {color = "{01FCFFFF}", phrases = {'Шнырь', 'Фраер', 'Бык', 'Барыга', 'Блатной', 'Свояк', 'Браток', 'Вор', 'Вор в законе', 'Авторитет'}, block = imgui.ImBool(false)},
+		reporters = {color = "{01FCFFFF}", phrases = {'Стажер', 'Звукооператор', 'Звукорежиссер', 'Репортер', 'Ведущий', 'Редактор', 'Гл. редактор', 'Тех. директор', 'Программный директор', 'Директор'}, block = imgui.ImBool(false)},
+		instructors = {color = "{01FCFFFF}", phrases = {'Стажер', 'Консультант', 'Экзаменатор', 'Мл. инструктор', 'Инструктор', 'Координатор', 'Мл. менеджер', 'Ст. менеджер', 'Директор', 'Управляющий'}, block = imgui.ImBool(false)},
+		medics = {color = "{01FCFFFF}", phrases = {'Интерн', 'Санитар', 'Мед. брат', 'Спасатель', 'Нарколог', 'Доктор', 'Психолог', 'Хирург', 'Зам. глав. врача', 'Глав. врач'}, block = imgui.ImBool(false)},
+		army = {color = "{01FCFFFF}", phrases = {'Рядовой', 'Ефрейтор', 'Мл. сержант', 'Сержант', 'Ст. сержант', 'Старшина', 'Прапорщик', 'Мл. лейтенант', 'Лейтенант', 'Ст. лейтенант', 'Капитан', 'Майор', 'Подполковник', 'Полковник', 'Генерал'}, block = imgui.ImBool(false)},
+		police = {color = "{01FCFFFF}", phrases = {'Кадет', 'Офицер', 'Мл. Сержант', 'Сержант', 'Прапорщик', 'Ст. прапорщик', 'Мл. лейтенант', 'Лейтенант', 'Ст. лейтенант', 'Капитан', 'Майор', 'Подполковник', 'Полковник', 'Шериф'}, block = imgui.ImBool(false)},
 		bikers = {color = "{01FCFFFF}", phrases = {'Support', 'Hang around', 'Prospect', 'Member', 'Road captain', 'Sergeant-at-arms', 'Treasurer', 'Vice president', 'President'}, block = imgui.ImBool(false)},
-		fbi = {color = "{01FCFFFF}", phrases = {'РЎС‚Р°Р¶РµСЂ', 'Р”РµР¶СѓСЂРЅС‹Р№', 'РњР»Р°РґС€РёР№ Р°РіРµРЅС‚', 'РђРіРµРЅС‚ GNK', 'РђРіРµРЅС‚ CID', 'Р“Р»Р°РІР° GNK', 'Р“Р»Р°РІР° CID', 'РРЅСЃРїРµРєС‚РѕСЂ', 'Р—Р°РјРµСЃС‚РёС‚РµР»СЊ РґРёСЂРµРєС‚РѕСЂР°', 'Р”РёСЂРµРєС‚РѕСЂ'}, block = imgui.ImBool(false)},
-		city_hall = {color = "{01FCFFFF}", phrases = {'РЎРµРєСЂРµС‚Р°СЂСЊ', 'РђРґРІРѕРєР°С‚', 'РћС…СЂР°РЅРЅРёРє', 'РќР°С‡Р°Р»СЊРЅРёРє РѕС…СЂР°РЅС‹', 'Р—Р°Рј. РјСЌСЂР°', 'РњСЌСЂ'}, block = imgui.ImBool(false)}
+		fbi = {color = "{01FCFFFF}", phrases = {'Стажер', 'Дежурный', 'Младший агент', 'Агент GNK', 'Агент CID', 'Глава GNK', 'Глава CID', 'Инспектор', 'Заместитель директора', 'Директор'}, block = imgui.ImBool(false)},
+		city_hall = {color = "{01FCFFFF}", phrases = {'Секретарь', 'Адвокат', 'Охранник', 'Начальник охраны', 'Зам. мэра', 'Мэр'}, block = imgui.ImBool(false)}
 	}
 
-	-- РџСЂРµРґРІР°СЂРёС‚РµР»СЊРЅР°СЏ РєРѕРјРїРёР»СЏС†РёСЏ С€Р°Р±Р»РѕРЅРѕРІ РґР»СЏ С„СЂР°РєС†РёР№
+	-- Предварительная компиляция шаблонов для фракций
 	for faction, settings in pairs(faction_settings) do
 		settings.pattern = "^(" .. table.concat(settings.phrases, "|") .. ")"
 	end
 
-	-- РЎРѕР·РґР°РЅРёРµ РґРёСЂРµРєС‚РѕСЂРёР№
+	-- Создание директорий
 	if not doesDirectoryExist(log_folder) then createDirectory(log_folder) end
 	if not doesDirectoryExist(archive_folder) then createDirectory(archive_folder) end
 
-	-- РРЅРёС†РёР°Р»РёР·Р°С†РёСЏ Р»РѕРіРѕРІ РІ РїР°РјСЏС‚Рё
+	-- Инициализация логов в памяти
 	local function initialize_log_contents()
 		for _, file in ipairs({sms_log_file, announcement_log_file, admin_log_file, all_chat_log_file, faction_log_file}) do
 			line_counts[file] = 0
@@ -119,7 +119,7 @@
 			end
 		end
 		
-		-- Р”РѕР±Р°РІР»РµРЅРЅС‹Р№ РєРѕРґ РґР»СЏ kills_log_file
+		-- Добавленный код для kills_log_file
 		line_counts[kills_log_file] = 0
 		log_contents[kills_log_file] = {}
 		local file_obj = io.open(kills_log_file, "rb")
@@ -133,13 +133,13 @@
 	end
 	initialize_log_contents()
 
-	-- РќР°СЃС‚СЂРѕР№РєР° С€СЂРёС„С‚Р°
+	-- Настройка шрифта
 function imgui.BeforeDrawFrame()
     if log_font == nil or font_needs_update then
         imgui.GetIO().Fonts:Clear()
         log_font = imgui.GetIO().Fonts:AddFontFromFileTTF(getFolderPath(0x14) .. '\\calibri.ttf', font_size.v, nil, imgui.GetIO().Fonts:GetGlyphRangesCyrillic())
         if not log_font then
-            sampAddChatMessage("[LogChat] РћС€РёР±РєР° Р·Р°РіСЂСѓР·РєРё С€СЂРёС„С‚Р° Calibri. РСЃРїРѕР»СЊР·СѓРµС‚СЃСЏ С€СЂРёС„С‚ РїРѕ СѓРјРѕР»С‡Р°РЅРёСЋ.", 0xFF0000)
+            sampAddChatMessage("[LogChat] Ошибка загрузки шрифта Calibri. Используется шрифт по умолчанию.", 0xFF0000)
             log_font = imgui.GetIO().Fonts:AddFontDefault()
         end
         imgui.GetIO().Fonts:Build()
@@ -147,7 +147,7 @@ function imgui.BeforeDrawFrame()
     end
 end
 
-	-- РЎРѕС…СЂР°РЅРµРЅРёРµ РЅР°СЃС‚СЂРѕРµРє
+	-- Сохранение настроек
 	local function save_settings()
 		local data = {
 			block_announcements = block_announcements.v,
@@ -181,11 +181,11 @@ end
 				thisScript():reload()
 			end
 		else
-			sampAddChatMessage("[LogChat] РќРµ СѓРґР°Р»РѕСЃСЊ СЃРѕС…СЂР°РЅРёС‚СЊ РЅР°СЃС‚СЂРѕР№РєРё РІ " .. settings_file, 0xFF0000)
+			sampAddChatMessage("[LogChat] Не удалось сохранить настройки в " .. settings_file, 0xFF0000)
 		end
 	end
 
-	-- Р—Р°РіСЂСѓР·РєР° РЅР°СЃС‚СЂРѕРµРє
+	-- Загрузка настроек
 	local function load_settings()
 		if doesFileExist(settings_file) then
 			local file = io.open(settings_file, "r")
@@ -216,7 +216,7 @@ end
 							settings.block.v = data.faction_blocks and data.faction_blocks[faction] or false
 						end
 					else
-						sampAddChatMessage("[LogChat] РќРµРєРѕСЂСЂРµРєС‚РЅС‹Р№ JSON РІ " .. settings_file, 0xFF0000)
+						sampAddChatMessage("[LogChat] Некорректный JSON в " .. settings_file, 0xFF0000)
 						save_settings()
 					end
 				else
@@ -230,7 +230,7 @@ end
 		end
 	end
 
-	-- РђСЂС…РёРІРёСЂРѕРІР°РЅРёРµ С„Р°Р№Р»Р°
+	-- Архивирование файла
 	local function archive_file(filename)
 		local timestamp = os.date("%Y-%m-%d_%H-%M-%S")
 		local archive_name = archive_folder .. "\\" .. filename:match("([^\\]+)$"):gsub("%.txt", "") .. "_" .. timestamp .. ".txt"
@@ -248,7 +248,7 @@ end
 		end
 	end
 
-	-- Р”РѕР±Р°РІР»РµРЅРёРµ Р·Р°РїРёСЃРё РІ С„Р°Р№Р» Рё РїР°РјСЏС‚СЊ
+	-- Добавление записи в файл и память
 	local function append_to_file(filename, text)
 		local timestamp = os.date("%Y-%m-%d %H:%M:%S")
 		local utf8_text = u8:encode(text, 'CP1251')
@@ -266,11 +266,11 @@ end
 				cached_filtered_content[filename] = nil
 			end
 		else
-			sampAddChatMessage("[LogChat] РћС€РёР±РєР° Р·Р°РїРёСЃРё РІ " .. filename, 0xFF0000)
+			sampAddChatMessage("[LogChat] Ошибка записи в " .. filename, 0xFF0000)
 		end
 	end
 
-	-- Р¤РёР»СЊС‚СЂР°С†РёСЏ СЃРѕРґРµСЂР¶РёРјРѕРіРѕ Р»РѕРіРѕРІ
+	-- Фильтрация содержимого логов
 	local function filter_content(content, search)
 		if search == "" then return content end
 		local filtered = {}
@@ -283,12 +283,12 @@ end
 		return filtered
 	end
 
-	-- РџСЂРµРѕР±СЂР°Р·РѕРІР°РЅРёРµ ARGB РІ HEX
+	-- Преобразование ARGB в HEX
 	local function argb_to_hex(argb_color)
 		return string.format("{%08X}", argb_color)
 	end
 
-	-- РџСЂРѕРІРµСЂРєР°, РІС…РѕРґРёС‚ Р»Рё С†РІРµС‚ РІ СЃРїРёСЃРѕРє РґР»СЏ РґР°РЅРЅРѕР№ РєР°С‚РµРіРѕСЂРёРё
+	-- Проверка, входит ли цвет в список для данной категории
 	local function matches_color(raw_text, category)
 		for _, color in ipairs(color_mappings[category]) do
 			if raw_text:match("^" .. color:gsub("[{}]", "%%%1")) then
@@ -311,7 +311,7 @@ local function processKillsTextDraw()
     }
     local killsTextDrawId = nil
     
-    -- Р¤СѓРЅРєС†РёСЏ РґР»СЏ РѕР±СЂРµР·РєРё РїСЂРѕР±РµР»РѕРІ
+    -- Функция для обрезки пробелов
     local function trim(s)
         return s:match("^%s*(.-)%s*$")
     end
@@ -320,7 +320,7 @@ local function processKillsTextDraw()
         if sampTextdrawIsExists(id) then
             local text = sampTextdrawGetString(id)
             if text and text ~= "" then
-                -- РћР±РЅРѕРІР»С‘РЅРЅРѕРµ СЂРµРіСѓР»СЏСЂРЅРѕРµ РІС‹СЂР°Р¶РµРЅРёРµ РґР»СЏ РїРѕРґРґРµСЂР¶РєРё РґРµС„РёСЃРѕРІ РІ РЅР°Р·РІР°РЅРёРё РѕСЂСѓР¶РёСЏ
+                -- Обновлённое регулярное выражение для поддержки дефисов в названии оружия
                 local nick, weapon, number = text:match("^([%w_]+)%s*-%s*([%w%-]+%s*[%w%-]*)%s*-([%d%.%-]+)")
                 if nick and weapon and number then
                     weapon = trim(weapon)
@@ -350,7 +350,7 @@ local function processKillsTextDraw()
             local killFlag = text:find("%s*-%s*KILL$") ~= nil
             local currentTime = os.clock()
             
-            -- РћР±РЅРѕРІР»СЏРµРј РґР°РЅРЅС‹Рµ С‚РѕР»СЊРєРѕ РµСЃР»Рё С‚РµРєСЃС‚РґСЂР°РІ РЅРѕРІС‹Р№ РёР»Рё РёР·РјРµРЅРёР»СЃСЏ
+            -- Обновляем данные только если текстдрав новый или изменился
             if not max_kills[nick] or max_kills[nick].weapon ~= weapon or max_kills[nick].number ~= num or max_kills[nick].id ~= killsTextDrawId then
                 max_kills[nick] = {
                     weapon = weapon,
@@ -361,7 +361,7 @@ local function processKillsTextDraw()
                 }
             end
             
-            -- РџСЂРѕРІРµСЂСЏРµРј Р·Р°РїРёСЃСЊ РїРѕ С‚Р°Р№РјРµСЂСѓ РёР»Рё СЃ "KILL"
+            -- Проверяем запись по таймеру или с "KILL"
             if killFlag and not max_kills[nick].logged then
                 local entry = string.format("%s - %s - %.1f - KILL", nick, max_kills[nick].weapon, max_kills[nick].number)
                 append_to_file(kills_log_file, "{FF0000FF}" .. entry .. "{FF0000FF}")
@@ -400,14 +400,14 @@ local function processKillsTextDraw()
     end
 end
 
--- РџРѕР»СѓС‡РµРЅРёРµ РЅРёРєР° РїРѕ ID
+-- Получение ника по ID
 local function getNickFromId(id)
     local playerId = tonumber(id)
     if not playerId or playerId < 0 or playerId > 999 then
         return nil
     end
 
-    -- РџСЂРѕРІРµСЂСЏРµРј, РїРѕРґРєР»СЋС‡С‘РЅ Р»Рё РёРіСЂРѕРє СЃ РґР°РЅРЅС‹Рј ID
+    -- Проверяем, подключён ли игрок с данным ID
     if sampIsPlayerConnected(playerId) then
         if not sampGetPlayerNickname then
             return nil
@@ -429,61 +429,61 @@ local function getNickFromId(id)
             return nil
         end
     else
-        sampAddChatMessage("[LogChat] РРіСЂРѕРє СЃ ID " .. playerId .. " РЅРµ РїРѕРґРєР»СЋС‡С‘РЅ", 0xFF0000)
+        sampAddChatMessage("[LogChat] Игрок с ID " .. playerId .. " не подключён", 0xFF0000)
         return nil
     end
 end
-	-- Р”РѕР±Р°РІР»РµРЅРёРµ РІ С‡РµСЂРЅС‹Р№ СЃРїРёСЃРѕРє
--- Р”РѕР±Р°РІР»РµРЅРёРµ РІ С‡РµСЂРЅС‹Р№ СЃРїРёСЃРѕРє
+	-- Добавление в черный список
+-- Добавление в черный список
 local function addToBlacklist(nick)
     if nick == "" then
-        sampAddChatMessage("[LogChat] Р’РІРµРґРёС‚Рµ РЅРёРє РёРіСЂРѕРєР° РёР»Рё ID", 0xFF0000)
+        sampAddChatMessage("[LogChat] Введите ник игрока или ID", 0xFF0000)
         return
     end
     
-    -- РџСЂРѕРІРµСЂСЏРµРј, СЏРІР»СЏРµС‚СЃСЏ Р»Рё РІРІРµРґРµРЅРЅРѕРµ Р·РЅР°С‡РµРЅРёРµ С‡РёСЃР»РѕРј РѕС‚ 0 РґРѕ 999
+    -- Проверяем, является ли введенное значение числом от 0 до 999
     local num = tonumber(nick)
     if num and num >= 0 and num <= 999 then
         local playerNick = getNickFromId(num)
         if playerNick then
             if blacklist[playerNick] then
-                sampAddChatMessage("[LogChat] РРіСЂРѕРє " .. playerNick .. " СѓР¶Рµ РІ С‡РµСЂРЅРѕРј СЃРїРёСЃРєРµ", 0xFF0000)
+                sampAddChatMessage("[LogChat] Игрок " .. playerNick .. " уже в черном списке", 0xFF0000)
                 return
             end
             blacklist[playerNick] = true
-            sampAddChatMessage("[LogChat] РРіСЂРѕРє " .. playerNick .. " (ID: " .. nick .. ") РґРѕР±Р°РІР»РµРЅ РІ С‡РµСЂРЅС‹Р№ СЃРїРёСЃРѕРє", 0x00FF00)
+            sampAddChatMessage("[LogChat] Игрок " .. playerNick .. " (ID: " .. nick .. ") добавлен в черный список", 0x00FF00)
             save_settings()
         end
     else
-        -- РћР±С‹С‡РЅР°СЏ РѕР±СЂР°Р±РѕС‚РєР° РЅРёРєР°
+        -- Обычная обработка ника
         if blacklist[nick] then
-            sampAddChatMessage("[LogChat] РРіСЂРѕРє " .. nick .. " СѓР¶Рµ РІ С‡РµСЂРЅРѕРј СЃРїРёСЃРєРµ", 0xFF0000)
+            sampAddChatMessage("[LogChat] Игрок " .. nick .. " уже в черном списке", 0xFF0000)
             return
         end
         blacklist[nick] = true
-        sampAddChatMessage("[LogChat] РРіСЂРѕРє " .. nick .. " РґРѕР±Р°РІР»РµРЅ РІ С‡РµСЂРЅС‹Р№ СЃРїРёСЃРѕРє", 0x00FF00)
+        sampAddChatMessage("[LogChat] Игрок " .. nick .. " добавлен в черный список", 0x00FF00)
         save_settings()
     end
 end
 
-	-- Р“Р»Р°РІРЅР°СЏ С„СѓРЅРєС†РёСЏ
+	-- Главная функция
 	function main()
 		if not isSampLoaded() or not isSampfuncsLoaded() then return end
 		while not isSampAvailable() do wait(100) end
 
 		load_settings()
-		sampAddChatMessage("[LogChat] РЈСЃРїРµС€РЅРѕ Р·Р°РіСЂСѓР¶РµРЅ", 0x00FF00)
+		sampAddChatMessage("[LogChat] Успешно загружен", 0x00FF00)
 
 		local function ensure_file_exists(file, initial_text)
 			if not doesFileExist(file) then append_to_file(file, initial_text) end
 		end
 
-		ensure_file_exists(sms_log_file, "Р›РѕРі SMS РЅР°С‡Р°С‚")
-		ensure_file_exists(announcement_log_file, "Р›РѕРі РѕР±СЉСЏРІР»РµРЅРёР№ РЅР°С‡Р°С‚")
-		ensure_file_exists(admin_log_file, "Р›РѕРі РђРґРјРёРЅРёСЃС‚СЂР°С‚РѕСЂ РЅР°С‡Р°С‚")
-		ensure_file_exists(all_chat_log_file, "Р›РѕРі РІСЃРµР№ РёСЃС‚РѕСЂРёРё С‡Р°С‚Р° РЅР°С‡Р°С‚")
-		ensure_file_exists(faction_log_file, "Р›РѕРі С„СЂР°РєС†РёРѕРЅРЅРѕРіРѕ С‡Р°С‚Р° РЅР°С‡Р°С‚")
-		ensure_file_exists(kills_log_file, "Р›РѕРі СѓР±РёР№СЃС‚РІ РЅР°С‡Р°С‚")
+		ensure_file_exists(sms_log_file, "Лог SMS начат")
+		ensure_file_exists(announcement_log_file, "Лог объявлений начат")
+		ensure_file_exists(admin_log_file, "Лог Администратор начат")
+		ensure_file_exists(all_chat_log_file, "Лог всей истории чата начат")
+		ensure_file_exists(faction_log_file, "Лог фракционного чата начат")
+		ensure_file_exists(kills_log_file, "Лог убийств начат")
 
 		cached_filtered_content = {}
 		last_search_text = ""
@@ -491,7 +491,7 @@ end
 		sampRegisterChatCommand("log", function() main_window_state.v = not main_window_state.v end)
 		sampRegisterChatCommand("chs", function(arg)
 			if not arg or arg == "" then
-				sampAddChatMessage("[LogChat] РСЃРїРѕР»СЊР·РѕРІР°РЅРёРµ: /chs [РЅРёРє РёР»Рё ID]", 0xFF0000)
+				sampAddChatMessage("[LogChat] Использование: /chs [ник или ID]", 0xFF0000)
 				blacklist_window_state.v = true
 				return
 			end
@@ -506,7 +506,7 @@ end
 	end
 
 
-	-- РћР±СЂР°Р±РѕС‚РєР° СЃРµСЂРІРµСЂРЅС‹С… СЃРѕРѕР±С‰РµРЅРёР№
+	-- Обработка серверных сообщений
 function sampev.onServerMessage(color, text)
     local color_hex = argb_to_hex(color)
     local raw_text = text:gsub("%s*$", "")
@@ -514,17 +514,17 @@ function sampev.onServerMessage(color, text)
         raw_text = color_hex .. raw_text .. color_hex
     end
 
-    -- РџРµСЂРµРјРµРЅРЅР°СЏ РґР»СЏ РѕС‚СЃР»РµР¶РёРІР°РЅРёСЏ С‡С‘СЂРЅРѕРіРѕ СЃРїРёСЃРєР°
+    -- Переменная для отслеживания чёрного списка
     local is_blacklisted = false
     if blacklist_enabled.v and matches_color(raw_text, "sms") and raw_text:find("SMS:") then
         local sender
         local success, result = pcall(function()
-            return raw_text:match("РћС‚РїСЂР°РІРёС‚РµР»СЊ:%s*([%w_]+)%[%d+]")
+            return raw_text:match("Отправитель:%s*([%w_]+)%[%d+]")
         end)
         if success then
             sender = result
         else
-            sampAddChatMessage("[LogChat] РћС€РёР±РєР° РїР°СЂСЃРёРЅРіР° SMS: " .. raw_text, 0xFF0000)
+            sampAddChatMessage("[LogChat] Ошибка парсинга SMS: " .. raw_text, 0xFF0000)
         end
         if sender and blacklist[sender] then
             is_blacklisted = true
@@ -532,11 +532,11 @@ function sampev.onServerMessage(color, text)
         end
     end
 
-    -- Р¤Р»Р°Рі РґР»СЏ Р±Р»РѕРєРёСЂРѕРІРєРё РѕС‚РѕР±СЂР°Р¶РµРЅРёСЏ РІ С‡Р°С‚Рµ
+    -- Флаг для блокировки отображения в чате
     local should_block = false
     local is_faction_message = raw_text:find("{01FCFFFF}")
 
-    -- РџСЂРѕРІРµСЂРєР° Р±Р»РѕРєРёСЂРѕРІРєРё С„СЂР°РєС†РёР№
+    -- Проверка блокировки фракций
     if block_faction_messages.v and is_faction_message then
         local text_after_color = raw_text:sub(raw_text:find("{01FCFFFF}", 1, true) + 10)
         if block_all_factions.v then
@@ -554,29 +554,29 @@ function sampev.onServerMessage(color, text)
         end
     end
 
-    -- Р•РґРёРЅРѕРµ Р»РѕРіРёСЂРѕРІР°РЅРёРµ РІСЃРµС… СЃРѕРѕР±С‰РµРЅРёР№
+    -- Единое логирование всех сообщений
     if not is_blacklisted or blacklist_log_enabled.v then
-        append_to_file(all_chat_log_file, raw_text) -- Р’СЃРµРіРґР° Р·Р°РїРёСЃС‹РІР°РµРј РІ РѕР±С‰РёР№ Р»РѕРі
+        append_to_file(all_chat_log_file, raw_text) -- Всегда записываем в общий лог
         if matches_color(raw_text, "sms") and raw_text:find("SMS:") then
             append_to_file(sms_log_file, raw_text)
-        elseif matches_color(raw_text, "announcements") and raw_text:find("РћР±СЉСЏРІР»РµРЅРёРµ:") then
+        elseif matches_color(raw_text, "announcements") and raw_text:find("Объявление:") then
             append_to_file(announcement_log_file, raw_text)
         elseif matches_color(raw_text, "admin") then
             for _, phrase in pairs(admin_phrases) do
-                if raw_text:find(phrase) or raw_text:find("РїРѕР»СѓС‡РёР»%(%a?%) Р±Р°РЅ С‡Р°С‚Р° РѕС‚ Р°РґРјРёРЅРёСЃС‚СЂР°С‚РѕСЂР°") then
+                if raw_text:find(phrase) or raw_text:find("получил%(%a?%) бан чата от администратора") then
                     append_to_file(admin_log_file, raw_text)
                     break
                 end
             end
         elseif is_faction_message then
-            append_to_file(faction_log_file, raw_text) -- Р—Р°РїРёСЃС‹РІР°РµРј С„СЂР°РєС†РёРѕРЅРЅРѕРµ СЃРѕРѕР±С‰РµРЅРёРµ С‚РѕР»СЊРєРѕ Р·РґРµСЃСЊ
-        elseif (matches_color(raw_text, "news") and raw_text:find("РќРѕРІРѕСЃС‚Рё:")) or
-               (matches_color(raw_text, "state_news") and raw_text:find("Р“РѕСЃСѓРґР°СЂСЃС‚РІРµРЅРЅС‹Рµ РќРѕРІРѕСЃС‚Рё")) then
+            append_to_file(faction_log_file, raw_text) -- Записываем фракционное сообщение только здесь
+        elseif (matches_color(raw_text, "news") and raw_text:find("Новости:")) or
+               (matches_color(raw_text, "state_news") and raw_text:find("Государственные Новости")) then
             append_to_file(announcement_log_file, raw_text)
         end
     end
 
-    -- Р‘Р»РѕРєРёСЂРѕРІРєР° РѕС‚РѕР±СЂР°Р¶РµРЅРёСЏ РІ С‡Р°С‚Рµ
+    -- Блокировка отображения в чате
     if is_blacklisted then return false end
     if should_block then return false end
     if block_announcements.v then
@@ -587,8 +587,8 @@ function sampev.onServerMessage(color, text)
         end
     end
     if block_news.v then
-        if (matches_color(raw_text, "news") and raw_text:find("РќРѕРІРѕСЃС‚Рё:")) or
-           (matches_color(raw_text, "state_news") and raw_text:find("Р“РѕСЃСѓРґР°СЂСЃС‚РІРµРЅРЅС‹Рµ РќРѕРІРѕСЃС‚Рё")) then
+        if (matches_color(raw_text, "news") and raw_text:find("Новости:")) or
+           (matches_color(raw_text, "state_news") and raw_text:find("Государственные Новости")) then
             return false
         end
     end
@@ -598,13 +598,13 @@ function sampev.onServerMessage(color, text)
                 return false
             end
         end
-        if raw_text:find("РїРѕР»СѓС‡РёР»%([Р°%]%) Р±Р°РЅ С‡Р°С‚Р° РѕС‚ Р°РґРјРёРЅРёСЃС‚СЂР°С‚РѕСЂР°") and matches_color(raw_text, "admin") then
+        if raw_text:find("получил%([а%]%) бан чата от администратора") and matches_color(raw_text, "admin") then
             return false
         end
     end
 end
 	
-	-- РћС‚СЂРёСЃРѕРІРєР° С†РІРµС‚РЅРѕРіРѕ С‚РµРєСЃС‚Р°
+	-- Отрисовка цветного текста
 	local timestamp_menus = {}
 	function draw_colored_text(text)
 		local default_color = imgui.ImVec4(1.0, 1.0, 1.0, 1.0)
@@ -646,7 +646,7 @@ end
 		end
 
 		if unique_id and imgui.BeginPopup(unique_id .. "_Menu") then
-			if imgui.MenuItem(u8"РљРѕРїРёСЂРѕРІР°С‚СЊ (Р±РµР· РІСЂРµРјРµРЅРё)") then
+			if imgui.MenuItem(u8"Копировать (без времени)") then
 				local clean_text = content_without_timestamp:gsub("{%x+}", "")
 				imgui.SetClipboardText(clean_text)
 				timestamp_menus[unique_id] = false
@@ -663,15 +663,15 @@ end
 			end
 			if next(nicks) then
 				for nick in pairs(nicks) do
-					if imgui.MenuItem(u8"РџРѕРёСЃРє РїРѕ РЅРёРєСѓ: " .. nick) then
+					if imgui.MenuItem(u8"Поиск по нику: " .. nick) then
 						search_text.v = nick
 						timestamp_menus[unique_id] = false
 					end
 				end
 			else
-				imgui.Text(u8"РќРё РѕРґРЅРѕРіРѕ РЅРёРєР° РЅРµ РЅР°Р№РґРµРЅРѕ")
+				imgui.Text(u8"Ни одного ника не найдено")
 			end
-			if imgui.MenuItem(u8"Р—Р°РєСЂС‹С‚СЊ") then timestamp_menus[unique_id] = false end
+			if imgui.MenuItem(u8"Закрыть") then timestamp_menus[unique_id] = false end
 			imgui.EndPopup()
 		end
 
@@ -720,7 +720,7 @@ end
 		imgui.PopFont()
 	end
 
-	-- РҐСЌС€РёСЂРѕРІР°РЅРёРµ СЃС‚СЂРѕРє
+	-- Хэширование строк
 	if not string.hash then
 		function string.hash(s)
 			local hash = 0
@@ -732,16 +732,16 @@ end
 		end
 	end
 
-	-- РќР°Р·РІР°РЅРёСЏ С„СЂР°РєС†РёР№ РЅР° Р°РЅРіР»РёР№СЃРєРѕРј
+	-- Названия фракций на английском
 	local faction_names = {
-		["РЇРєСѓРґР·Р°"] = "yakudza", ["Р‘Р°Р»Р»Р°СЃ"] = "ballas", ["Р“СЂРѕСѓРІ"] = "grove", ["РђС†С‚РµРєРё"] = "aztec",
-		["Р’Р°РіРѕСЃ"] = "vagos", ["Р РёС„Р°"] = "rifa", ["LCN"] = "lcn", ["Р СѓСЃСЃРєР°СЏ РјР°С„РёСЏ"] = "russian_mafia",
-		["Р РµРїРѕСЂС‚С‘СЂС‹"] = "reporters", ["РРЅСЃС‚СЂСѓРєС‚РѕСЂС‹"] = "instructors", ["РњРµРґРёРєРё"] = "medics",
-		["РђСЂРјРёСЏ"] = "army", ["РџРѕР»РёС†РёСЏ"] = "police", ["Р‘Р°Р№РєРµСЂС‹"] = "bikers", ["Р¤Р‘Р "] = "fbi",
-		["РњСЌСЂРёСЏ"] = "city_hall"
+		["Якудза"] = "yakudza", ["Баллас"] = "ballas", ["Гроув"] = "grove", ["Ацтеки"] = "aztec",
+		["Вагос"] = "vagos", ["Рифа"] = "rifa", ["LCN"] = "lcn", ["Русская мафия"] = "russian_mafia",
+		["Репортёры"] = "reporters", ["Инструкторы"] = "instructors", ["Медики"] = "medics",
+		["Армия"] = "army", ["Полиция"] = "police", ["Байкеры"] = "bikers", ["ФБР"] = "fbi",
+		["Мэрия"] = "city_hall"
 	}
 
-	-- РћС‚СЂРёСЃРѕРІРєР° РёРЅС‚РµСЂС„РµР№СЃР°
+	-- Отрисовка интерфейса
 function imgui.OnDrawFrame()
     if main_window_state.v then
         if is_first_run then
@@ -753,16 +753,16 @@ function imgui.OnDrawFrame()
             just_opened = false
         end
 
-        imgui.Begin(u8'РСЃС‚РѕСЂРёСЏ С‡Р°С‚Р°', main_window_state)
+        imgui.Begin(u8'История чата', main_window_state)
         local prev_tab = active_tab
         if imgui.RadioButton(u8'SMS', active_tab == 1) then active_tab = 1 end imgui.SameLine()
-        if imgui.RadioButton(u8'РћР±СЉСЏРІР»РµРЅРёСЏ', active_tab == 2) then active_tab = 2 end imgui.SameLine()
-        if imgui.RadioButton(u8'РђРґРјРёРЅРёСЃС‚СЂР°С‚РѕСЂ', active_tab == 3) then active_tab = 3 end imgui.SameLine()
-        if imgui.RadioButton(u8'Р’СЃСЏ РёСЃС‚РѕСЂРёСЏ', active_tab == 4) then active_tab = 4 end imgui.SameLine()
-        if imgui.RadioButton(u8'Р¤СЂР°РєС†РёСЏ', active_tab == 5) then active_tab = 5 end imgui.SameLine()
-        if imgui.RadioButton(u8'РђСЂС…РёРІС‹', active_tab == 6) then active_tab = 6 end imgui.SameLine()
-        if imgui.RadioButton(u8'РќР°СЃС‚СЂРѕР№РєРё', active_tab == 7) then active_tab = 7 end imgui.SameLine()
-        if imgui.RadioButton(u8'РЈР±РёР№СЃС‚РІР°', active_tab == 8) then active_tab = 8 end -- Р”РѕР±Р°РІР»РµРЅР° РІРєР»Р°РґРєР° "РЈР±РёР№СЃС‚РІР°" РІ С‚РѕР№ Р¶Рµ СЃС‚СЂРѕРєРµ
+        if imgui.RadioButton(u8'Объявления', active_tab == 2) then active_tab = 2 end imgui.SameLine()
+        if imgui.RadioButton(u8'Администратор', active_tab == 3) then active_tab = 3 end imgui.SameLine()
+        if imgui.RadioButton(u8'Вся история', active_tab == 4) then active_tab = 4 end imgui.SameLine()
+        if imgui.RadioButton(u8'Фракция', active_tab == 5) then active_tab = 5 end imgui.SameLine()
+        if imgui.RadioButton(u8'Архивы', active_tab == 6) then active_tab = 6 end imgui.SameLine()
+        if imgui.RadioButton(u8'Настройки', active_tab == 7) then active_tab = 7 end imgui.SameLine()
+        if imgui.RadioButton(u8'Убийства', active_tab == 8) then active_tab = 8 end -- Добавлена вкладка "Убийства" в той же строке
 
         local should_scroll_to_bottom = just_opened or prev_tab ~= active_tab
         imgui.BeginChild("ScrollRegion", imgui.ImVec2(0, -30), true)
@@ -774,7 +774,7 @@ function imgui.OnDrawFrame()
 
         if active_tab <= 5 then
             local files = {sms_log_file, announcement_log_file, admin_log_file, all_chat_log_file, faction_log_file}
-            local titles = {u8'РЎРѕРѕР±С‰РµРЅРёСЏ SMS:', u8'РћР±СЉСЏРІР»РµРЅРёСЏ:', u8'РЎРѕРѕР±С‰РµРЅРёСЏ РђРґРјРёРЅРёСЃС‚СЂР°С‚РѕСЂ:', u8'Р’СЃСЏ РёСЃС‚РѕСЂРёСЏ С‡Р°С‚Р°:', u8'Р¤СЂР°РєС†РёРѕРЅРЅС‹Р№ С‡Р°С‚:'}
+            local titles = {u8'Сообщения SMS:', u8'Объявления:', u8'Сообщения Администратор:', u8'Вся история чата:', u8'Фракционный чат:'}
             imgui.Text(titles[active_tab])
             imgui.Separator()
 
@@ -791,7 +791,7 @@ function imgui.OnDrawFrame()
             cached_filtered_content.prev_count[files[active_tab]] = current_count
 
             if #content == 0 then
-                imgui.Text(u8"РќРµС‚ СЃРѕРѕР±С‰РµРЅРёР№ РёР»Рё РЅРёС‡РµРіРѕ РЅРµ РЅР°Р№РґРµРЅРѕ")
+                imgui.Text(u8"Нет сообщений или ничего не найдено")
             else
                 imgui.PushFont(log_font)
                 local item_height = imgui.CalcTextSize("A").y + 6
@@ -816,7 +816,7 @@ function imgui.OnDrawFrame()
                 end
             end
         elseif active_tab == 8 then
-            imgui.Text(u8'РЈР±РёР№СЃС‚РІР°:')
+            imgui.Text(u8'Убийства:')
             imgui.Separator()
 
             if not cached_filtered_content[kills_log_file] or last_search_text ~= search_text.v then
@@ -832,7 +832,7 @@ function imgui.OnDrawFrame()
             cached_filtered_content.prev_count[kills_log_file] = current_count
 
             if #content == 0 then
-                imgui.Text(u8"РќРµС‚ Р·Р°РїРёСЃРµР№ РѕР± СѓР±РёР№СЃС‚РІР°С… РёР»Рё РЅРёС‡РµРіРѕ РЅРµ РЅР°Р№РґРµРЅРѕ")
+                imgui.Text(u8"Нет записей об убийствах или ничего не найдено")
             else
                 imgui.PushFont(log_font)
                 local item_height = imgui.CalcTextSize("A").y + 6
@@ -857,7 +857,7 @@ function imgui.OnDrawFrame()
                 end
             end
         elseif active_tab == 6 then
-            imgui.Text(u8'РђСЂС…РёРІС‹:')
+            imgui.Text(u8'Архивы:')
             imgui.Separator()
 
             if not cached_filtered_content.archive_files then
@@ -869,7 +869,7 @@ function imgui.OnDrawFrame()
             local files = cached_filtered_content.archive_files
 
             if #files > 0 then
-                imgui.Text(u8'Р’С‹Р±РµСЂРёС‚Рµ Р°СЂС…РёРІ:')
+                imgui.Text(u8'Выберите архив:')
                 local changed = imgui.Combo("##ArchiveSelector", selected_archive, files, #files)
                 imgui.BeginChild("ArchiveContent", imgui.ImVec2(0, -imgui.GetStyle().ItemSpacing.y), true)
                 if selected_archive.v >= 0 and selected_archive.v < #files then
@@ -902,7 +902,7 @@ function imgui.OnDrawFrame()
                     cached_filtered_content.prev_count["archive"] = current_count
 
                     if #filtered_content == 0 then
-                        imgui.Text(u8"РќРµС‚ СЃРѕРѕР±С‰РµРЅРёР№ РІ Р°СЂС…РёРІРµ РёР»Рё РЅРёС‡РµРіРѕ РЅРµ РЅР°Р№РґРµРЅРѕ")
+                        imgui.Text(u8"Нет сообщений в архиве или ничего не найдено")
                     else
                         imgui.PushFont(log_font)
                         local item_height = imgui.CalcTextSize("A").y + 6
@@ -928,36 +928,36 @@ function imgui.OnDrawFrame()
                 end
                 imgui.EndChild()
             else
-                imgui.Text(u8'РђСЂС…РёРІС‹ РѕС‚СЃСѓС‚СЃС‚РІСѓСЋС‚.')
+                imgui.Text(u8'Архивы отсутствуют.')
             end
         elseif active_tab == 7 then
-            imgui.Text(u8'РќР°СЃС‚СЂРѕР№РєРё:', imgui.ImVec4(0.0, 0.5, 1.0, 1.0))
+            imgui.Text(u8'Настройки:', imgui.ImVec4(0.0, 0.5, 1.0, 1.0))
             imgui.Separator()
 
-            imgui.Text(u8'РћР±СЉСЏРІР»РµРЅРёСЏ Рё РЅРѕРІРѕСЃС‚Рё', imgui.ImVec4(0.0, 0.5, 1.0, 1.0))
-            imgui.Checkbox(u8'Р‘Р»РѕРєРёСЂРѕРІР°С‚СЊ РѕР±СЉСЏРІР»РµРЅРёСЏ', block_announcements)
+            imgui.Text(u8'Объявления и новости', imgui.ImVec4(0.0, 0.5, 1.0, 1.0))
+            imgui.Checkbox(u8'Блокировать объявления', block_announcements)
             imgui.SameLine()
-            imgui.Checkbox(u8'Р‘Р»РѕРєРёСЂРѕРІР°С‚СЊ РЅРѕРІРѕСЃС‚Рё', block_news)
+            imgui.Checkbox(u8'Блокировать новости', block_news)
             imgui.TextColored(block_announcements.v and imgui.ImVec4(0.65, 1.0, 0.0, 1.0) or imgui.ImVec4(1.0, 0.15, 0.0, 1.0),
-                block_announcements.v and u8'РћР±СЉСЏРІР»РµРЅРёСЏ СЃРєСЂС‹С‚С‹' or u8'РћР±СЉСЏРІР»РµРЅРёСЏ РѕС‚РѕР±СЂР°Р¶Р°СЋС‚СЃСЏ')
+                block_announcements.v and u8'Объявления скрыты' or u8'Объявления отображаются')
             imgui.SameLine()
             imgui.TextColored(block_news.v and imgui.ImVec4(0.65, 1.0, 0.0, 1.0) or imgui.ImVec4(1.0, 0.15, 0.0, 1.0),
-                block_news.v and u8'РќРѕРІРѕСЃС‚Рё СЃРєСЂС‹С‚С‹' or u8'РќРѕРІРѕСЃС‚Рё РѕС‚РѕР±СЂР°Р¶Р°СЋС‚СЃСЏ')
+                block_news.v and u8'Новости скрыты' or u8'Новости отображаются')
 
-            imgui.Text(u8'РђРґРјРёРЅРёСЃС‚СЂР°С‚РѕСЂ', imgui.ImVec4(0.0, 0.5, 1.0, 1.0))
-            imgui.Checkbox(u8'Р‘Р»РѕРєРёСЂРѕРІР°С‚СЊ Р°РґРјРёРЅ-СЃРѕРѕР±С‰РµРЅРёСЏ', block_admin_messages)
+            imgui.Text(u8'Администратор', imgui.ImVec4(0.0, 0.5, 1.0, 1.0))
+            imgui.Checkbox(u8'Блокировать админ-сообщения', block_admin_messages)
             imgui.TextColored(block_admin_messages.v and imgui.ImVec4(0.65, 1.0, 0.0, 1.0) or imgui.ImVec4(1.0, 0.15, 0.0, 1.0),
-                block_admin_messages.v and u8'РђРґРјРёРЅ-СЃРѕРѕР±С‰РµРЅРёСЏ СЃРєСЂС‹С‚С‹' or u8'РђРґРјРёРЅ-СЃРѕРѕР±С‰РµРЅРёСЏ РѕС‚РѕР±СЂР°Р¶Р°СЋС‚СЃСЏ')
+                block_admin_messages.v and u8'Админ-сообщения скрыты' or u8'Админ-сообщения отображаются')
 
-            imgui.Text(u8'Р¤СЂР°РєС†РёРё', imgui.ImVec4(0.0, 0.5, 1.0, 1.0))
-            imgui.Checkbox(u8'Р‘Р»РѕРєРёСЂРѕРІР°С‚СЊ С„СЂР°РєС†РёРѕРЅРЅС‹Р№ С‡Р°С‚', block_faction_messages)
+            imgui.Text(u8'Фракции', imgui.ImVec4(0.0, 0.5, 1.0, 1.0))
+            imgui.Checkbox(u8'Блокировать фракционный чат', block_faction_messages)
             if block_faction_messages.v then
-                imgui.TextColored(imgui.ImVec4(0.65, 1.0, 0.0, 1.0), u8'Р¤СЂР°РєС†РёРѕРЅРЅС‹Р№ С‡Р°С‚ СЃРєСЂС‹С‚')
-                imgui.Text(u8'Р’С‹Р±РµСЂРёС‚Рµ С„СЂР°РєС†РёРё РґР»СЏ Р±Р»РѕРєРёСЂРѕРІРєРё:')
+                imgui.TextColored(imgui.ImVec4(0.65, 1.0, 0.0, 1.0), u8'Фракционный чат скрыт')
+                imgui.Text(u8'Выберите фракции для блокировки:')
                 imgui.BeginGroup()
                 imgui.Columns(3, "FactionColumns", false)
-                local factions = {"РЇРєСѓРґР·Р°", "Р‘Р°Р»Р»Р°СЃ", "Р“СЂРѕСѓРІ", "РђС†С‚РµРєРё", "Р’Р°РіРѕСЃ", "Р РёС„Р°", "LCN", "Р СѓСЃСЃРєР°СЏ РјР°С„РёСЏ",
-                                  "Р РµРїРѕСЂС‚С‘СЂС‹", "РРЅСЃС‚СЂСѓРєС‚РѕСЂС‹", "РњРµРґРёРєРё", "РђСЂРјРёСЏ", "РџРѕР»РёС†РёСЏ", "Р‘Р°Р№РєРµСЂС‹", "Р¤Р‘Р ", "РњСЌСЂРёСЏ"}
+                local factions = {"Якудза", "Баллас", "Гроув", "Ацтеки", "Вагос", "Рифа", "LCN", "Русская мафия",
+                                  "Репортёры", "Инструкторы", "Медики", "Армия", "Полиция", "Байкеры", "ФБР", "Мэрия"}
                 for i, faction in ipairs(factions) do
                     local key = faction_names[faction]
                     imgui.Checkbox(u8(faction), faction_settings[key].block)
@@ -965,29 +965,29 @@ function imgui.OnDrawFrame()
                 end
                 imgui.Columns(1)
                 imgui.EndGroup()
-                if imgui.Button(u8'Р‘Р»РѕРєРёСЂРѕРІР°С‚СЊ РІСЃРµ') then
+                if imgui.Button(u8'Блокировать все') then
                     block_all_factions.v = true
                     for _, settings in pairs(faction_settings) do settings.block.v = true end
                 end
                 imgui.SameLine()
-                if imgui.Button(u8'РЎРЅСЏС‚СЊ Р±Р»РѕРєРёСЂРѕРІРєСѓ') then
+                if imgui.Button(u8'Снять блокировку') then
                     block_all_factions.v = false
                     for _, settings in pairs(faction_settings) do settings.block.v = false end
                 end
             end
 
-            imgui.Text(u8'Р”РѕРїРѕР»РЅРёС‚РµР»СЊРЅРѕ', imgui.ImVec4(0.0, 0.5, 1.0, 1.0))
-            if imgui.Button(u8'РћС‚РєСЂС‹С‚СЊ С‡РµСЂРЅС‹Р№ СЃРїРёСЃРѕРє') then blacklist_window_state.v = true end
+            imgui.Text(u8'Дополнительно', imgui.ImVec4(0.0, 0.5, 1.0, 1.0))
+            if imgui.Button(u8'Открыть черный список') then blacklist_window_state.v = true end
 
-            imgui.Text(u8'РђСЂС…РёРІР°С†РёСЏ', imgui.ImVec4(0.0, 0.5, 1.0, 1.0))
-            imgui.Text(u8'РњР°РєСЃРёРјСѓРј СЃС‚СЂРѕРє:')
+            imgui.Text(u8'Архивация', imgui.ImVec4(0.0, 0.5, 1.0, 1.0))
+            imgui.Text(u8'Максимум строк:')
             imgui.InputInt("##MaxLines", max_lines)
 
-            imgui.Text(u8'РЁСЂРёС„С‚', imgui.ImVec4(0.0, 0.5, 1.0, 1.0))
-            imgui.Text(u8'Р Р°Р·РјРµСЂ С€СЂРёС„С‚Р° Р»РѕРіРѕРІ:')
+            imgui.Text(u8'Шрифт', imgui.ImVec4(0.0, 0.5, 1.0, 1.0))
+            imgui.Text(u8'Размер шрифта логов:')
             imgui.SliderFloat("##FontSize", font_size, 10.0, 30.0, "%.0f")
 
-            if imgui.Button(u8'РЎРѕС…СЂР°РЅРёС‚СЊ РЅР°СЃС‚СЂРѕР№РєРё') then
+            if imgui.Button(u8'Сохранить настройки') then
                 window_pos = imgui.GetWindowPos()
                 window_size = imgui.GetWindowSize()
                 save_settings()
@@ -1001,7 +1001,7 @@ function imgui.OnDrawFrame()
         imgui.EndChild()
 
         if active_tab ~= 7 then
-            imgui.Text(u8"РџРѕРёСЃРє:")
+            imgui.Text(u8"Поиск:")
             imgui.SameLine()
             imgui.InputText("##Search", search_text, imgui.InputTextFlags.AutoSelectAll)
         end
@@ -1010,33 +1010,33 @@ function imgui.OnDrawFrame()
 
     if blacklist_window_state.v then
         imgui.SetNextWindowSize(imgui.ImVec2(300, 400), imgui.Cond.FirstUseEver)
-        imgui.Begin(u8'Р§РµСЂРЅС‹Р№ СЃРїРёСЃРѕРє (С‚РѕР»СЊРєРѕ SMS)', blacklist_window_state)
+        imgui.Begin(u8'Черный список (только SMS)', blacklist_window_state)
 
-        imgui.Checkbox(u8'Р’РєР»СЋС‡РёС‚СЊ С‡РµСЂРЅС‹Р№ СЃРїРёСЃРѕРє', blacklist_enabled)
+        imgui.Checkbox(u8'Включить черный список', blacklist_enabled)
         imgui.TextColored(blacklist_enabled.v and imgui.ImVec4(0.65, 1.0, 0.0, 1.0) or imgui.ImVec4(1.0, 0.15, 0.0, 1.0),
-            blacklist_enabled.v and u8'Р§РµСЂРЅС‹Р№ СЃРїРёСЃРѕРє Р°РєС‚РёРІРµРЅ (SMS СЃРєСЂС‹С‚С‹)' or u8'Р§РµСЂРЅС‹Р№ СЃРїРёСЃРѕРє РѕС‚РєР»СЋС‡РµРЅ (SMS РѕС‚РѕР±СЂР°Р¶Р°СЋС‚СЃСЏ)')
-        imgui.Checkbox(u8'Р—Р°РїРёСЃС‹РІР°С‚СЊ SMS РёР· С‡РµСЂРЅРѕРіРѕ СЃРїРёСЃРєР° РІ Р»РѕРі', blacklist_log_enabled)
+            blacklist_enabled.v and u8'Черный список активен (SMS скрыты)' or u8'Черный список отключен (SMS отображаются)')
+        imgui.Checkbox(u8'Записывать SMS из черного списка в лог', blacklist_log_enabled)
         imgui.TextColored(blacklist_log_enabled.v and imgui.ImVec4(0.65, 1.0, 0.0, 1.0) or imgui.ImVec4(1.0, 0.15, 0.0, 1.0),
-            blacklist_log_enabled.v and u8'SMS РёР· Р§РЎ Р·Р°РїРёСЃС‹РІР°СЋС‚СЃСЏ РІ Р»РѕРі' or u8'SMS РёР· Р§РЎ РЅРµ Р·Р°РїРёСЃС‹РІР°СЋС‚СЃСЏ РІ Р»РѕРі')
+            blacklist_log_enabled.v and u8'SMS из ЧС записываются в лог' or u8'SMS из ЧС не записываются в лог')
 
         imgui.Separator()
-        imgui.Text(u8'Р”РѕР±Р°РІРёС‚СЊ РёРіСЂРѕРєР° РїРѕ РЅРёРєСѓ РёР»Рё ID (0-999):')
+        imgui.Text(u8'Добавить игрока по нику или ID (0-999):')
         imgui.InputText("##BlacklistNick", blacklist_input_nick)
         imgui.SameLine()
-        if imgui.Button(u8'Р”РѕР±Р°РІРёС‚СЊ') then
+        if imgui.Button(u8'Добавить') then
             addToBlacklist(blacklist_input_nick.v)
             blacklist_input_nick.v = ""
         end
 
         if next(blacklist) then
-            imgui.Text(u8'РЎРїРёСЃРѕРє Р·Р°Р±Р»РѕРєРёСЂРѕРІР°РЅРЅС‹С…:')
+            imgui.Text(u8'Список заблокированных:')
             imgui.BeginChild("BlacklistScroll", imgui.ImVec2(0, -30), true)
             for nick in pairs(blacklist) do
                 imgui.Text(nick)
                 imgui.SameLine()
-                if imgui.Button(u8'РЈРґР°Р»РёС‚СЊ##'..nick) then
+                if imgui.Button(u8'Удалить##'..nick) then
                     blacklist[nick] = nil
-                    sampAddChatMessage("[LogChat] РРіСЂРѕРє " .. nick .. " СѓРґР°Р»РµРЅ РёР· С‡РµСЂРЅРѕРіРѕ СЃРїРёСЃРєР°", 0x00FF00)
+                    sampAddChatMessage("[LogChat] Игрок " .. nick .. " удален из черного списка", 0x00FF00)
                     save_settings()
                 end
             end
