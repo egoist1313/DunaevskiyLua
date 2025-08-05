@@ -1,37 +1,37 @@
 script_name('ObjectMarker with TextDraw Clicker')
 script_author('AlexSwift, Clicker by YourName')
 script_version('1.0')
-script_properties("work-in-pause") -- Позволяет скрипту работать в паузе
+script_properties("work-in-pause") -- ГЏГ®Г§ГўГ®Г«ГїГҐГІ Г±ГЄГ°ГЁГЇГІГі Г°Г ГЎГ®ГІГ ГІГј Гў ГЇГ ГіГ§ГҐ
 
 require "lib.moonloader"
 require "lib.sampfuncs"
 local samp = require "samp.events"
-local MessageSender = require "lib.messagesender" -- Подключаем библиотеку
+local MessageSender = require "lib.messagesender" -- ГЏГ®Г¤ГЄГ«ГѕГ·Г ГҐГ¬ ГЎГЁГЎГ«ГЁГ®ГІГҐГЄГі
 local imgui = require "mimgui"
 
--- Путь к файлу для сохранения данных
+-- ГЏГіГІГј ГЄ ГґГ Г©Г«Гі Г¤Г«Гї Г±Г®ГµГ°Г Г­ГҐГ­ГЁГї Г¤Г Г­Г­Г»Гµ
 local SAVE_FILE = "moonloader/object_markers.txt"
 
--- Список целевых моделей объектов для ObjectMarker
+-- Г‘ГЇГЁГ±Г®ГЄ Г¶ГҐГ«ГҐГўГ»Гµ Г¬Г®Г¤ГҐГ«ГҐГ© Г®ГЎГєГҐГЄГІГ®Гў Г¤Г«Гї ObjectMarker
 local targetModels = {1608, 1609, 19315, 19833}
--- Список моделей для автокликера
+-- Г‘ГЇГЁГ±Г®ГЄ Г¬Г®Г¤ГҐГ«ГҐГ© Г¤Г«Гї Г ГўГІГ®ГЄГ«ГЁГЄГҐГ°Г 
 local clickerTargetModels = {19315, 19833}
--- Таблица для хранения найденных объектов
+-- Г’Г ГЎГ«ГЁГ¶Г  Г¤Г«Гї ГµГ°Г Г­ГҐГ­ГЁГї Г­Г Г©Г¤ГҐГ­Г­Г»Гµ Г®ГЎГєГҐГЄГІГ®Гў
 local foundObjects = {}
--- Флаг для включения/отключения меток
+-- Г”Г«Г ГЈ Г¤Г«Гї ГўГЄГ«ГѕГ·ГҐГ­ГЁГї/Г®ГІГЄГ«ГѕГ·ГҐГ­ГЁГї Г¬ГҐГІГ®ГЄ
 local markersEnabled = false
--- Список созданных меток (blips)
+-- Г‘ГЇГЁГ±Г®ГЄ Г±Г®Г§Г¤Г Г­Г­Г»Гµ Г¬ГҐГІГ®ГЄ (blips)
 local blips = {}
--- Таблица для временного хранения объектов и их координат для проверки движения
+-- Г’Г ГЎГ«ГЁГ¶Г  Г¤Г«Гї ГўГ°ГҐГ¬ГҐГ­Г­Г®ГЈГ® ГµГ°Г Г­ГҐГ­ГЁГї Г®ГЎГєГҐГЄГІГ®Гў ГЁ ГЁГµ ГЄГ®Г®Г°Г¤ГЁГ­Г ГІ Г¤Г«Гї ГЇГ°Г®ГўГҐГ°ГЄГЁ Г¤ГўГЁГ¦ГҐГ­ГЁГї
 local tempObjects = {}
--- Переменные для управления командой /hunting spear и атакой
-local lastSpearCommand = 0 -- Время последней отправки команды
-local floodWait = false -- Флаг ожидания после "Не флуди"
-local spearSent = false -- Флаг отправки команды в текущей сессии в воде
-local lastAttackTime = 0 -- Время последней эмуляции Ctrl
-local hasSpear = true -- Флаг наличия копья
-local wasInWater = false -- Флаг для отслеживания предыдущего состояния в воде
--- Переменная для хранения следующего номера объекта
+-- ГЏГҐГ°ГҐГ¬ГҐГ­Г­Г»ГҐ Г¤Г«Гї ГіГЇГ°Г ГўГ«ГҐГ­ГЁГї ГЄГ®Г¬Г Г­Г¤Г®Г© /hunting spear ГЁ Г ГІГ ГЄГ®Г©
+local lastSpearCommand = 0 -- Г‚Г°ГҐГ¬Гї ГЇГ®Г±Г«ГҐГ¤Г­ГҐГ© Г®ГІГЇГ°Г ГўГЄГЁ ГЄГ®Г¬Г Г­Г¤Г»
+local floodWait = false -- Г”Г«Г ГЈ Г®Г¦ГЁГ¤Г Г­ГЁГї ГЇГ®Г±Г«ГҐ "ГЌГҐ ГґГ«ГіГ¤ГЁ"
+local spearSent = false -- Г”Г«Г ГЈ Г®ГІГЇГ°Г ГўГЄГЁ ГЄГ®Г¬Г Г­Г¤Г» Гў ГІГҐГЄГіГ№ГҐГ© Г±ГҐГ±Г±ГЁГЁ Гў ГўГ®Г¤ГҐ
+local lastAttackTime = 0 -- Г‚Г°ГҐГ¬Гї ГЇГ®Г±Г«ГҐГ¤Г­ГҐГ© ГЅГ¬ГіГ«ГїГ¶ГЁГЁ Ctrl
+local hasSpear = true -- Г”Г«Г ГЈ Г­Г Г«ГЁГ·ГЁГї ГЄГ®ГЇГјГї
+local wasInWater = false -- Г”Г«Г ГЈ Г¤Г«Гї Г®ГІГ±Г«ГҐГ¦ГЁГўГ Г­ГЁГї ГЇГ°ГҐГ¤Г»Г¤ГіГ№ГҐГЈГ® Г±Г®Г±ГІГ®ГїГ­ГЁГї Гў ГўГ®Г¤ГҐ
+-- ГЏГҐГ°ГҐГ¬ГҐГ­Г­Г Гї Г¤Г«Гї ГµГ°Г Г­ГҐГ­ГЁГї Г±Г«ГҐГ¤ГіГѕГ№ГҐГЈГ® Г­Г®Г¬ГҐГ°Г  Г®ГЎГєГҐГЄГІГ 
 local nextObjectNumber = 1
 
 function main()
@@ -39,18 +39,18 @@ function main()
         wait(100) 
     end
     
-    -- Инициализируем MessageSender
+    -- Г€Г­ГЁГ¶ГЁГ Г«ГЁГ§ГЁГ°ГіГҐГ¬ MessageSender
     MessageSender:init()
     
     loadObjectsFromFile()
-    sampAddChatMessage("{FFFFFF} /hmap для управления метками. Все метки видны на паузе (Esc).", -1)
-    sampAddChatMessage("{FFFFFF} Автокликер по TextDraw (ld_beat:chit) запущен.", -1)
+    sampAddChatMessage("{FFFFFF} /hmap Г¤Г«Гї ГіГЇГ°Г ГўГ«ГҐГ­ГЁГї Г¬ГҐГІГЄГ Г¬ГЁ. Г‚Г±ГҐ Г¬ГҐГІГЄГЁ ГўГЁГ¤Г­Г» Г­Г  ГЇГ ГіГ§ГҐ (Esc).", -1)
+    sampAddChatMessage("{FFFFFF} ГЂГўГІГ®ГЄГ«ГЁГЄГҐГ° ГЇГ® TextDraw (ld_beat:chit) Г§Г ГЇГіГ№ГҐГ­.", -1)
     sampRegisterChatCommand("hmap", toggleMarkers)
     
-    -- Запускаем автокликер как отдельную корутину
+    -- Г‡Г ГЇГіГ±ГЄГ ГҐГ¬ Г ГўГІГ®ГЄГ«ГЁГЄГҐГ° ГЄГ ГЄ Г®ГІГ¤ГҐГ«ГјГ­ГіГѕ ГЄГ®Г°ГіГІГЁГ­Гі
     lua_thread.create(textDrawClickerCoroutine)
     
-    -- Основной цикл для ObjectMarker
+    -- ГЋГ±Г­Г®ГўГ­Г®Г© Г¶ГЁГЄГ« Г¤Г«Гї ObjectMarker
     while true do
         wait(0)
         if not isPauseMenuActive() then
@@ -69,56 +69,56 @@ function main()
     end
 end
 
--- Функция для отрисовки номеров объектов на большой карте
+-- Г”ГіГ­ГЄГ¶ГЁГї Г¤Г«Гї Г®ГІГ°ГЁГ±Г®ГўГЄГЁ Г­Г®Г¬ГҐГ°Г®Гў Г®ГЎГєГҐГЄГІГ®Гў Г­Г  ГЎГ®Г«ГјГёГ®Г© ГЄГ Г°ГІГҐ
 function drawObjectNumbersOnMap()
     local DL = imgui.GetBackgroundDrawList()
     if not DL then
-        print("[ObjectMarker] Ошибка: imgui.GetBackgroundDrawList() вернул nil")
+        print("[ObjectMarker] ГЋГёГЁГЎГЄГ : imgui.GetBackgroundDrawList() ГўГҐГ°Г­ГіГ« nil")
         return
     end
-    print("[ObjectMarker] Вызов drawObjectNumbersOnMap, объектов: " .. #foundObjects)
+    print("[ObjectMarker] Г‚Г»Г§Г®Гў drawObjectNumbersOnMap, Г®ГЎГєГҐГЄГІГ®Гў: " .. #foundObjects)
     
-    -- Параметры карты (пример для разрешения 1920x1080)
-    local mapLeft = 600   -- Левый край карты на экране
-    local mapTop = 200    -- Верхний край карты на экране
-    local mapWidth = 600  -- Ширина карты на экране
-    local mapHeight = 600 -- Высота карты на экране
-    local worldSize = 6000 -- Размер игрового мира (-3000 до 3000)
+    -- ГЏГ Г°Г Г¬ГҐГІГ°Г» ГЄГ Г°ГІГ» (ГЇГ°ГЁГ¬ГҐГ° Г¤Г«Гї Г°Г Г§Г°ГҐГёГҐГ­ГЁГї 1920x1080)
+    local mapLeft = 600   -- Г‹ГҐГўГ»Г© ГЄГ°Г Г© ГЄГ Г°ГІГ» Г­Г  ГЅГЄГ°Г Г­ГҐ
+    local mapTop = 200    -- Г‚ГҐГ°ГµГ­ГЁГ© ГЄГ°Г Г© ГЄГ Г°ГІГ» Г­Г  ГЅГЄГ°Г Г­ГҐ
+    local mapWidth = 600  -- ГГЁГ°ГЁГ­Г  ГЄГ Г°ГІГ» Г­Г  ГЅГЄГ°Г Г­ГҐ
+    local mapHeight = 600 -- Г‚Г»Г±Г®ГІГ  ГЄГ Г°ГІГ» Г­Г  ГЅГЄГ°Г Г­ГҐ
+    local worldSize = 6000 -- ГђГ Г§Г¬ГҐГ° ГЁГЈГ°Г®ГўГ®ГЈГ® Г¬ГЁГ°Г  (-3000 Г¤Г® 3000)
 
     for _, obj in ipairs(foundObjects) do
-        print("[ObjectMarker] Обработка объекта #" .. obj.number .. " на координатах x=" .. obj.x .. ", y=" .. obj.y .. ", z=" .. obj.z)
-        -- Преобразуем игровые координаты в экранные координаты на большой карте
+        print("[ObjectMarker] ГЋГЎГ°Г ГЎГ®ГІГЄГ  Г®ГЎГєГҐГЄГІГ  #" .. obj.number .. " Г­Г  ГЄГ®Г®Г°Г¤ГЁГ­Г ГІГ Гµ x=" .. obj.x .. ", y=" .. obj.y .. ", z=" .. obj.z)
+        -- ГЏГ°ГҐГ®ГЎГ°Г Г§ГіГҐГ¬ ГЁГЈГ°Г®ГўГ»ГҐ ГЄГ®Г®Г°Г¤ГЁГ­Г ГІГ» Гў ГЅГЄГ°Г Г­Г­Г»ГҐ ГЄГ®Г®Г°Г¤ГЁГ­Г ГІГ» Г­Г  ГЎГ®Г«ГјГёГ®Г© ГЄГ Г°ГІГҐ
         local mapX = mapLeft + (obj.x - (-3000)) * (mapWidth / worldSize)
-        local mapY = mapTop + (3000 - obj.y) * (mapHeight / worldSize) -- Инвертируем Y, так как карта отображается сверху вниз
+        local mapY = mapTop + (3000 - obj.y) * (mapHeight / worldSize) -- Г€Г­ГўГҐГ°ГІГЁГ°ГіГҐГ¬ Y, ГІГ ГЄ ГЄГ ГЄ ГЄГ Г°ГІГ  Г®ГІГ®ГЎГ°Г Г¦Г ГҐГІГ±Гї Г±ГўГҐГ°ГµГі ГўГ­ГЁГ§
 
-        print("[ObjectMarker] Объект #" .. obj.number .. " mapSpace: x=" .. mapX .. ", y=" .. mapY)
+        print("[ObjectMarker] ГЋГЎГєГҐГЄГІ #" .. obj.number .. " mapSpace: x=" .. mapX .. ", y=" .. mapY)
         local number = tostring(obj.number)
         local textSize = imgui.CalcTextSize(number)
         local pos = imgui.ImVec2(mapX - textSize.x / 2, mapY - textSize.y / 2)
-        -- Отрисовка текста с тенью
+        -- ГЋГІГ°ГЁГ±Г®ГўГЄГ  ГІГҐГЄГ±ГІГ  Г± ГІГҐГ­ГјГѕ
         DL:AddText(imgui.ImVec2(pos.x - 1, pos.y - 1), 0xCC000000, number)
         DL:AddText(imgui.ImVec2(pos.x + 1, pos.y + 1), 0xCC000000, number)
         DL:AddText(imgui.ImVec2(pos.x - 1, pos.y + 1), 0xCC000000, number)
         DL:AddText(imgui.ImVec2(pos.x + 1, pos.y - 1), 0xCC000000, number)
-        -- Основной цвет текста (белый)
+        -- ГЋГ±Г­Г®ГўГ­Г®Г© Г¶ГўГҐГІ ГІГҐГЄГ±ГІГ  (ГЎГҐГ«Г»Г©)
         DL:AddText(pos, 0xFFFFFFFF, number)
-        print("[ObjectMarker] Отрисован номер " .. number .. " на позиции x=" .. pos.x .. ", y=" .. pos.y)
+        print("[ObjectMarker] ГЋГІГ°ГЁГ±Г®ГўГ Г­ Г­Г®Г¬ГҐГ° " .. number .. " Г­Г  ГЇГ®Г§ГЁГ¶ГЁГЁ x=" .. pos.x .. ", y=" .. pos.y)
     end
 end
 
--- Функция автокликера, работающая как корутина
+-- Г”ГіГ­ГЄГ¶ГЁГї Г ГўГІГ®ГЄГ«ГЁГЄГҐГ°Г , Г°Г ГЎГ®ГІГ ГѕГ№Г Гї ГЄГ ГЄ ГЄГ®Г°ГіГІГЁГ­Г 
 function textDrawClickerCoroutine()
     while true do
-        wait(0) -- Основной цикл автокликера
+        wait(0) -- ГЋГ±Г­Г®ГўГ­Г®Г© Г¶ГЁГЄГ« Г ГўГІГ®ГЄГ«ГЁГЄГҐГ°Г 
         local targetTextdraw = findTextdrawByContent("ld_beat:chit")
         if targetTextdraw and isObjectNearby(clickerTargetModels, 2) then
-            sampSendClickTextdraw(targetTextdraw) -- Клик по найденному TextDraw
-            wait(100)                            -- Задержка 100 мс
+            sampSendClickTextdraw(targetTextdraw) -- ГЉГ«ГЁГЄ ГЇГ® Г­Г Г©Г¤ГҐГ­Г­Г®Г¬Гі TextDraw
+            wait(100)                            -- Г‡Г Г¤ГҐГ°Г¦ГЄГ  100 Г¬Г±
         end
     end
 end
 
--- Функция для поиска TextDraw по содержимому
+-- Г”ГіГ­ГЄГ¶ГЁГї Г¤Г«Гї ГЇГ®ГЁГ±ГЄГ  TextDraw ГЇГ® Г±Г®Г¤ГҐГ°Г¦ГЁГ¬Г®Г¬Гі
 function findTextdrawByContent(content)
     for id = 0, 2047 do
         if sampTextdrawIsExists(id) then
@@ -131,22 +131,22 @@ function findTextdrawByContent(content)
     return nil
 end
 
--- Функция проверки наличия объектов в заданном радиусе (для автокликера)
+-- Г”ГіГ­ГЄГ¶ГЁГї ГЇГ°Г®ГўГҐГ°ГЄГЁ Г­Г Г«ГЁГ·ГЁГї Г®ГЎГєГҐГЄГІГ®Гў Гў Г§Г Г¤Г Г­Г­Г®Г¬ Г°Г Г¤ГЁГіГ±ГҐ (Г¤Г«Гї Г ГўГІГ®ГЄГ«ГЁГЄГҐГ°Г )
 function isObjectNearby(targetModels, radius)
     local playerX, playerY, playerZ = getCharCoordinates(PLAYER_PED)
     
-    -- Перебираем все объекты в зоне стрима
+    -- ГЏГҐГ°ГҐГЎГЁГ°Г ГҐГ¬ ГўГ±ГҐ Г®ГЎГєГҐГЄГІГ» Гў Г§Г®Г­ГҐ Г±ГІГ°ГЁГ¬Г 
     for _, obj in pairs(getAllObjects()) do
         local model = getObjectModel(obj)
         if table.contains(targetModels, model) then
             local _, objX, objY, objZ = getObjectCoordinates(obj)
             local distance = getDistanceBetweenCoords3d(playerX, playerY, playerZ, objX, objY, objZ)
             if distance <= radius then
-                return true -- Объект найден в радиусе
+                return true -- ГЋГЎГєГҐГЄГІ Г­Г Г©Г¤ГҐГ­ Гў Г°Г Г¤ГЁГіГ±ГҐ
             end
         end
     end
-    return false -- Объекты не найдены в радиусе
+    return false -- ГЋГЎГєГҐГЄГІГ» Г­ГҐ Г­Г Г©Г¤ГҐГ­Г» Гў Г°Г Г¤ГЁГіГ±ГҐ
 end
 
 function updateObjectList()
@@ -179,9 +179,9 @@ function updateObjectList()
                                         x = objX,
                                         y = objY,
                                         z = objZ,
-                                        number = nextObjectNumber -- Присваиваем следующий номер
+                                        number = nextObjectNumber -- ГЏГ°ГЁГ±ГўГ ГЁГўГ ГҐГ¬ Г±Г«ГҐГ¤ГіГѕГ№ГЁГ© Г­Г®Г¬ГҐГ°
                                     }
-                                    nextObjectNumber = nextObjectNumber + 1 -- Увеличиваем номер для следующего объекта
+                                    nextObjectNumber = nextObjectNumber + 1 -- Г“ГўГҐГ«ГЁГ·ГЁГўГ ГҐГ¬ Г­Г®Г¬ГҐГ° Г¤Г«Гї Г±Г«ГҐГ¤ГіГѕГ№ГҐГЈГ® Г®ГЎГєГҐГЄГІГ 
                                     table.insert(foundObjects, newObj)
                                     saveNewObjectToFile(newObj)
                                 end
@@ -202,9 +202,9 @@ function checkWaterSpearAndAttack()
     local playerX, playerY, playerZ = getCharCoordinates(PLAYER_PED)
     local isInWater = isCharInWater(PLAYER_PED)
     
-    -- Проверяем переход из состояния "не в воде" в "в воде"
+    -- ГЏГ°Г®ГўГҐГ°ГїГҐГ¬ ГЇГҐГ°ГҐГµГ®Г¤ ГЁГ§ Г±Г®Г±ГІГ®ГїГ­ГЁГї "Г­ГҐ Гў ГўГ®Г¤ГҐ" Гў "Гў ГўГ®Г¤ГҐ"
     if isInWater and not wasInWater then
-        hasSpear = true -- Сбрасываем флаг при новом погружении
+        hasSpear = true -- Г‘ГЎГ°Г Г±Г»ГўГ ГҐГ¬ ГґГ«Г ГЈ ГЇГ°ГЁ Г­Г®ГўГ®Г¬ ГЇГ®ГЈГ°ГіГ¦ГҐГ­ГЁГЁ
     end
     
     if isInWater and hasSpear then
@@ -215,21 +215,21 @@ function checkWaterSpearAndAttack()
                 local distance = getDistanceBetweenCoords3d(playerX, playerY, playerZ, objX, objY, objZ)
                 local currentTime = os.clock()
                 
-                -- Проверка на радиус 5 метров для команды
+                -- ГЏГ°Г®ГўГҐГ°ГЄГ  Г­Г  Г°Г Г¤ГЁГіГ± 5 Г¬ГҐГІГ°Г®Гў Г¤Г«Гї ГЄГ®Г¬Г Г­Г¤Г»
                 if distance <= 5.0 then
                     if not spearSent and not floodWait and (currentTime - lastSpearCommand >= 2.0) then
-                        MessageSender:sendChatMessage("/hunting spear") -- Заменяем sampSendChat
+                        MessageSender:sendChatMessage("/hunting spear") -- Г‡Г Г¬ГҐГ­ГїГҐГ¬ sampSendChat
                         lastSpearCommand = currentTime
                         spearSent = true
                     end
                     
-                    -- Проверка на радиус 3 метра для эмуляции Ctrl
+                    -- ГЏГ°Г®ГўГҐГ°ГЄГ  Г­Г  Г°Г Г¤ГЁГіГ± 3 Г¬ГҐГІГ°Г  Г¤Г«Гї ГЅГ¬ГіГ«ГїГ¶ГЁГЁ Ctrl
                     if distance <= 3.0 and spearSent then
-                        if currentTime - lastAttackTime >= 0.05 then -- Частота 20 раз в секунду (50мс)
-                            setGameKeyState(17, 255) -- Нажатие Ctrl
+                        if currentTime - lastAttackTime >= 0.05 then -- Г—Г Г±ГІГ®ГІГ  20 Г°Г Г§ Гў Г±ГҐГЄГіГ­Г¤Гі (50Г¬Г±)
+                            setGameKeyState(17, 255) -- ГЌГ Г¦Г ГІГЁГҐ Ctrl
                             lua_thread.create(function()
-                                wait(25) -- Держим 25мс (половина цикла)
-                                setGameKeyState(17, 0) -- Отпускаем Ctrl
+                                wait(25) -- Г„ГҐГ°Г¦ГЁГ¬ 25Г¬Г± (ГЇГ®Г«Г®ГўГЁГ­Г  Г¶ГЁГЄГ«Г )
+                                setGameKeyState(17, 0) -- ГЋГІГЇГіГ±ГЄГ ГҐГ¬ Ctrl
                             end)
                             lastAttackTime = currentTime
                         end
@@ -240,10 +240,10 @@ function checkWaterSpearAndAttack()
         end
     else
         spearSent = false
-        setGameKeyState(17, 0) -- Отпускаем Ctrl при выходе из воды или отсутствии копья
+        setGameKeyState(17, 0) -- ГЋГІГЇГіГ±ГЄГ ГҐГ¬ Ctrl ГЇГ°ГЁ ГўГ»ГµГ®Г¤ГҐ ГЁГ§ ГўГ®Г¤Г» ГЁГ«ГЁ Г®ГІГ±ГіГІГ±ГІГўГЁГЁ ГЄГ®ГЇГјГї
     end
     
-    wasInWater = isInWater -- Обновляем состояние для следующей итерации
+    wasInWater = isInWater -- ГЋГЎГ­Г®ГўГ«ГїГҐГ¬ Г±Г®Г±ГІГ®ГїГ­ГЁГҐ Г¤Г«Гї Г±Г«ГҐГ¤ГіГѕГ№ГҐГ© ГЁГІГҐГ°Г Г¶ГЁГЁ
 end
 
 function isObjectInList(x, y, z)
@@ -289,10 +289,10 @@ function toggleMarkers()
     markersEnabled = not markersEnabled
     if markersEnabled then
         updateMarkers(false)
-        sampAddChatMessage("{FFFFFF}Метки включены. Все метки видны на паузе (Esc).", -1)
+        sampAddChatMessage("{FFFFFF}ГЊГҐГІГЄГЁ ГўГЄГ«ГѕГ·ГҐГ­Г». Г‚Г±ГҐ Г¬ГҐГІГЄГЁ ГўГЁГ¤Г­Г» Г­Г  ГЇГ ГіГ§ГҐ (Esc).", -1)
     else
         removeMarkers()
-        sampAddChatMessage("{FFFFFF}Метки отключены.", -1)
+        sampAddChatMessage("{FFFFFF}ГЊГҐГІГЄГЁ Г®ГІГЄГ«ГѕГ·ГҐГ­Г».", -1)
     end
 end
 
@@ -309,9 +309,9 @@ function updateMarkers(showAll)
             local blip = addSpriteBlipForCoord(obj.x, obj.y, obj.z, icon)
             if blip then
                 if isNotVisible then
-                    changeBlipColour(blip, 0xFF0000FF) -- Красный
+                    changeBlipColour(blip, 0xFF0000FF) -- ГЉГ°Г Г±Г­Г»Г©
                 else
-                    changeBlipColour(blip, 0x00FF00FF) -- Зелёный
+                    changeBlipColour(blip, 0x00FF00FF) -- Г‡ГҐГ«ВёГ­Г»Г©
                 end
                 table.insert(blips, blip)
             end
@@ -349,12 +349,12 @@ function loadObjectsFromFile()
                     z = tonumber(z),
                     number = tonumber(number)
                 })
-                -- Обновляем следующий номер, чтобы не пересечься с уже загруженными
+                -- ГЋГЎГ­Г®ГўГ«ГїГҐГ¬ Г±Г«ГҐГ¤ГіГѕГ№ГЁГ© Г­Г®Г¬ГҐГ°, Г·ГІГ®ГЎГ» Г­ГҐ ГЇГҐГ°ГҐГ±ГҐГ·ГјГ±Гї Г± ГіГ¦ГҐ Г§Г ГЈГ°ГіГ¦ГҐГ­Г­Г»Г¬ГЁ
                 if tonumber(number) >= nextObjectNumber then
                     nextObjectNumber = tonumber(number) + 1
                 end
             else
-                -- Поддержка старого формата файла (без номера)
+                -- ГЏГ®Г¤Г¤ГҐГ°Г¦ГЄГ  Г±ГІГ Г°Г®ГЈГ® ГґГ®Г°Г¬Г ГІГ  ГґГ Г©Г«Г  (ГЎГҐГ§ Г­Г®Г¬ГҐГ°Г )
                 local model, x, y, z = line:match("(%d+)%s+([%d%.%-]+)%s+([%d%.%-]+)%s+([%d%.%-]+)")
                 if model and x and y and z then
                     table.insert(foundObjects, {
@@ -382,7 +382,7 @@ function table.contains(table, element)
 end
 
 function samp.onServerMessage(color, text)
-    if text:find("Не флуди") then
+    if text:find("ГЌГҐ ГґГ«ГіГ¤ГЁ") then
         floodWait = true
         lua_thread.create(function()
             wait(2000)
@@ -391,16 +391,16 @@ function samp.onServerMessage(color, text)
                 checkWaterSpearAndAttack()
             end
         end)
-    elseif text:find("У вас нет копья") then
-        hasSpear = false -- Устанавливаем флаг, что копья нет
-        spearSent = false -- Сбрасываем флаг команды
-        setGameKeyState(17, 0) -- Отпускаем Ctrl
+    elseif text:find("Г“ ГўГ Г± Г­ГҐГІ ГЄГ®ГЇГјГї") then
+        hasSpear = false -- Г“Г±ГІГ Г­Г ГўГ«ГЁГўГ ГҐГ¬ ГґГ«Г ГЈ, Г·ГІГ® ГЄГ®ГЇГјГї Г­ГҐГІ
+        spearSent = false -- Г‘ГЎГ°Г Г±Г»ГўГ ГҐГ¬ ГґГ«Г ГЈ ГЄГ®Г¬Г Г­Г¤Г»
+        setGameKeyState(17, 0) -- ГЋГІГЇГіГ±ГЄГ ГҐГ¬ Ctrl
     end
 end
 
 function onScriptTerminate(scr, quitGame)
     if scr == thisScript() then
         removeMarkers()
-        setGameKeyState(17, 0) -- Отпускаем Ctrl при выгрузке скрипта
+        setGameKeyState(17, 0) -- ГЋГІГЇГіГ±ГЄГ ГҐГ¬ Ctrl ГЇГ°ГЁ ГўГ»ГЈГ°ГіГ§ГЄГҐ Г±ГЄГ°ГЁГЇГІГ 
     end
 end
