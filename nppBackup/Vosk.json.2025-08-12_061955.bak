@@ -1,5 +1,5 @@
 {
-  "files": [
+  "scripts": [
     {"name": "frozen_application_license.txt", "version": "1.0.0", "path": "LuaDunaevskiy/frozen_application_license.txt"},
     {"name": "lua_to_python.json", "version": "1.0.0", "path": "LuaDunaevskiy/lua_to_python.json"},
     {"name": "python3.dll", "version": "1.0.0", "path": "LuaDunaevskiy/python3.dll"},
