@@ -7,7 +7,6 @@
     {"name": "level.lua", "version": "1.0.0", "path": "LuaDunaevskiy/level.lua"},
     {"name": "logChat.lua", "version": "1.0.0", "path": "LuaDunaevskiy/logChat.lua"},
     {"name": "HunterMap.lua", "version": "1.0.0", "path": "LuaDunaevskiy/HunterMap.lua"},
-    {"name": "voskDun.lua", "version": "2.0", "path": "LuaDunaevskiy/voskDun.lua"},
-    {"name": "VoskBladwin.zip", "version": "1.0", "path": "LuaDunaevskiy/VoskBladwin.zip"}
+    {"name": "voskDun.lua", "version": "2.0", "path": "LuaDunaevskiy/voskDun.lua"}
   ]
 }
