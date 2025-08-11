@@ -1,4 +1,4 @@
-
+<<<<<<< HEAD
 local samp = require 'samp.events'
 local ffi = require 'ffi'
 local encoding = require 'encoding'
