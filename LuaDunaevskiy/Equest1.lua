@@ -1,55 +1,35 @@
 -- Автор: AlexDunaevskiy, 2025 https://t.me/AlexDunaevskiy
-
 local script_name = 'QuestChecker'
-
-local script_version = '12/04/2025'
-
-local enableLogging = false -- Новое: true - логи включены, false - логи отключены
-
+local script_version = '14/08/2025'
+local enableLogging = false -- true - логи включены, false - логи отключены
 local imgui = require 'imgui'
-
 local encoding = require 'encoding'
-
 local json = require 'dkjson'
-
 local vkeys = require 'vkeys'
-
 local ffi = require 'ffi'
-
 local fa = require 'fAwesome5'
-
 local sampev
-
 local success, result = pcall(function() return require 'lib.samp.events' end)
-
 if success then
     sampev = result
 else
+    if enableLogging then
+        print("[QuestChecker] Error: Failed to load lib.samp.events")
+    end
     return
 end
-
 local MessageSender = require 'lib.messagesender'
-
 encoding.default = 'CP1251'
-
 local u8 = encoding.UTF8
-
 local windowTitle = fa.ICON_FA_CHECK_SQUARE .. " QuestChecker"
-
 local questTitle = fa.ICON_FA_LIST .. " " .. u8'Не выполненные задания:'
-
 local showQuests = imgui.ImBool(true)
-
 local showNets = imgui.ImBool(true)
-
 local showSatiety = imgui.ImBool(true)
-
 local eatKey = imgui.ImInt(vkeys.VK_F3)
-
 local eatKeySelecting = imgui.ImBool(false)
-
 local isScriptActive = true
-
+local playerNickname = nil
 local state = {
     isFullyConnected = false,
     isWindowVisible = false,
@@ -65,49 +45,12 @@ local state = {
         questFontSize = 18.0,
         netsFontSize = 18.0,
         satietyFontSize = 18.0,
-        foodSettings = {
-            grib = imgui.ImBool(false),
-            fish = imgui.ImBool(false),
-            beef = imgui.ImBool(false),
-            deer = imgui.ImBool(false),
-            turtle = imgui.ImBool(false),
-            shark = imgui.ImBool(false),
-            turtle_ragu = imgui.ImBool(false),
-            beef_mushroom = imgui.ImBool(false),
-            deer_mushroom = imgui.ImBool(false),
-            shark_soup = imgui.ImBool(false),
-            sea_dish = imgui.ImBool(false),
-            trout_soup = imgui.ImBool(false),
-            pike_soup = imgui.ImBool(false),
-            fish_soup = imgui.ImBool(false),
-            carp = imgui.ImBool(false),
-            squid = imgui.ImBool(false),
-            taco = imgui.ImBool(false),
-            pudding = imgui.ImBool(false),
-            pufferfish = imgui.ImBool(false)
-        },
-        eatNowSettings = {
-            grib = imgui.ImBool(false),
-            fish = imgui.ImBool(false),
-            beef = imgui.ImBool(false),
-            deer = imgui.ImBool(false),
-            turtle = imgui.ImBool(false),
-            shark = imgui.ImBool(false),
-            turtle_ragu = imgui.ImBool(false),
-            beef_mushroom = imgui.ImBool(false),
-            deer_mushroom = imgui.ImBool(false),
-            shark_soup = imgui.ImBool(false),
-            sea_dish = imgui.ImBool(false),
-            trout_soup = imgui.ImBool(false),
-            pike_soup = imgui.ImBool(false),
-            fish_soup = imgui.ImBool(false),
-            carp = imgui.ImBool(false),
-            squid = imgui.ImBool(false),
-            taco = imgui.ImBool(false),
-            pudding = imgui.ImBool(false),
-            pufferfish = imgui.ImBool(false)
-        },
-        eatKey = vkeys.VK_F3
+        foodSettings = {},
+        eatNowSettings = {},
+        eatKey = vkeys.VK_F3,
+        showQuests = true,
+        showNets = true,
+        showSatiety = true
     },
     configFile = "moonloader\\config\\Equest\\QuestChecker.json",
     questReplacements = {},
@@ -176,10 +119,11 @@ local state = {
     lastNetTimeUpdate = 0,
     NET_TIME_UPDATE_INTERVAL = 1000
 }
-
 for _, food in ipairs(state.foodList) do
     state.foodStock[food.command] = 0
     state.eatenFood[food.command] = 0
+    state.config.foodSettings[food.command] = imgui.ImBool(false)
+    state.config.eatNowSettings[food.command] = imgui.ImBool(false)
 end
 
 local function handleJsonFile(filePath, data)
@@ -201,12 +145,20 @@ local function handleJsonFile(filePath, data)
                     if mainFile then
                         mainFile:write(encoded)
                         mainFile:close()
+                    else
+                        if enableLogging then
+                            print("[QuestChecker] Error: Unable to write to " .. filePath)
+                        end
                     end
                     os.remove(tempFile)
                 end
                 return true
+            else
+                if enableLogging then
+                    print("[QuestChecker] Error: Unable to open " .. tempFile .. " for writing")
+                end
+                return false
             end
-            return false
         else
             if doesFileExist(filePath) then
                 local file = io.open(filePath, "r")
@@ -217,13 +169,28 @@ local function handleJsonFile(filePath, data)
                         local decoded = json.decode(content)
                         if type(decoded) == "table" then
                             return decoded
+                        else
+                            if enableLogging then
+                                print("[QuestChecker] Error: Invalid JSON content in " .. filePath)
+                            end
                         end
+                    else
+                        if enableLogging then
+                            print("[QuestChecker] Error: Empty or invalid file content in " .. filePath)
+                        end
+                    end
+                else
+                    if enableLogging then
+                        print("[QuestChecker] Error: Unable to open " .. filePath .. " for reading")
                     end
                 end
             end
             return nil
         end
     end)
+    if not success and enableLogging then
+        print("[QuestChecker] Error in handleJsonFile: " .. tostring(result))
+    end
     return success and result or (data and false or nil)
 end
 
@@ -240,7 +207,7 @@ function table.copy(t)
 end
 
 local function updateLastCommandTime()
-    state.lastCommandTime = os.clock() * 1000
+    state.lastCommandTime = os.time() * 1000
 end
 
 local function getKeyName(vkCode)
@@ -248,6 +215,20 @@ local function getKeyName(vkCode)
         return vkeys.id_to_name(vkCode)
     end)
     return success and name or u8"Неизвестно"
+end
+
+local function updatePlayerNickname()
+    local success, nickname = pcall(function()
+        return sampGetPlayerNickname(select(2, sampGetPlayerIdByCharHandle(PLAYER_PED)))
+    end)
+    if success then
+        playerNickname = nickname
+    else
+        playerNickname = nil
+        if enableLogging then
+            print("[QuestChecker] Error getting player nickname: " .. tostring(nickname))
+        end
+    end
 end
 
 local function selectBestFood()
@@ -283,8 +264,8 @@ end
 local function sendEatCommandNow(food)
     if not state.messageSenderInitialized or not isScriptActive then return end
     if state.isChatOpen then
-        local timeout = os.clock() + 5
-        while state.isChatOpen and os.clock() < timeout and isScriptActive do
+        local timeout = os.time() + 5
+        while state.isChatOpen and os.time() < timeout and isScriptActive do
             wait(100)
         end
         if state.isChatOpen then return end
@@ -311,8 +292,8 @@ end
 local function sendEatCommand()
     if not state.messageSenderInitialized or not isScriptActive then return end
     if state.isChatOpen then
-        local timeout = os.clock() + 5
-        while state.isChatOpen and os.clock() < timeout and isScriptActive do
+        local timeout = os.time() + 5
+        while state.isChatOpen and os.time() < timeout and isScriptActive do
             wait(100)
         end
         if state.isChatOpen then return end
@@ -328,15 +309,15 @@ end
 local function sendEquestCommand()
     if not state.messageSenderInitialized or not isScriptActive then return end
     if state.isChatOpen then
-        local timeout = os.clock() + 5
-        while state.isChatOpen and os.clock() < timeout and isScriptActive do
+        local timeout = os.time() + 5
+        while state.isChatOpen and os.time() < timeout and isScriptActive do
             wait(100)
         end
         if state.isChatOpen then return end
     end
     MessageSender:sendChatMessage("/equest")
     state.waitingForDialog1013 = true
-    state.lastEquestSendTime = os.clock() * 1000
+    state.lastEquestSendTime = os.time() * 1000
     updateLastCommandTime()
 end
 
@@ -388,11 +369,11 @@ local function loadConfig()
     local result = handleJsonFile(state.configFile)
     if result and type(result) == "table" then
         for k, v in pairs(defaultConfig) do
-            if result[k] == nil then
+            if result[k] == nil or type(result[k]) ~= type(v) then
                 result[k] = v
             elseif type(v) == "table" and type(result[k]) == "table" then
                 for sk, sv in pairs(v) do
-                    if result[k][sk] == nil then
+                    if result[k][sk] == nil or type(result[k][sk]) ~= type(sv) then
                         result[k][sk] = sv
                     end
                 end
@@ -409,9 +390,9 @@ local function loadConfig()
         state.config.foodSettings[food.command] = imgui.ImBool(type(foodSetting) == "boolean" and foodSetting or false)
         state.config.eatNowSettings[food.command] = imgui.ImBool(type(eatNowSetting) == "boolean" and eatNowSetting or false)
     end
-    showQuests.v = state.config.showQuests
-    showNets.v = state.config.showNets
-    showSatiety.v = state.config.showSatiety
+    showQuests.v = type(state.config.showQuests) == "boolean" and state.config.showQuests or true
+    showNets.v = type(state.config.showNets) == "boolean" and state.config.showNets or true
+    showSatiety.v = type(state.config.showSatiety) == "boolean" and state.config.showSatiety or true
     state.autoEatEnabled = false
     for _, food in ipairs(state.foodList) do
         if state.config.foodSettings[food.command].v then
@@ -452,6 +433,7 @@ end
 local function startTimer()
     state.timerExpired = false
     lua_thread.create(function()
+        if not isScriptActive then return end
         wait(90000)
         if isScriptActive then
             state.timerExpired = true
@@ -478,6 +460,9 @@ local function getTimezoneOffset()
         return 0
     end)
     state.timezoneOffset = success and result or 0
+    if enableLogging and not success then
+        print("[QuestChecker] Error getting timezone offset: " .. tostring(result))
+    end
     return state.timezoneOffset
 end
 
@@ -497,6 +482,9 @@ local function dateToMinutes(dateStr)
         local seconds = os.time(timeTable)
         return math.floor(seconds / 60)
     end)
+    if enableLogging and not success then
+        print("[QuestChecker] Error parsing date: " .. tostring(result))
+    end
     return success and result or nil
 end
 
@@ -507,37 +495,33 @@ local function formatTime(minutes)
 end
 
 local function getNetTimeLeft()
-    local success, nickname = pcall(function()
-        return sampGetPlayerNickname(select(2, sampGetPlayerIdByCharHandle(PLAYER_PED)))
-    end)
-    local currentStatus
-    if not success or not nickname or not state.netData[nickname] then
-        currentStatus = "invalid"
+    if not playerNickname or not state.netData[playerNickname] then
+        local currentStatus = "invalid"
         if state.lastNetDataStatus ~= currentStatus and enableLogging then
-            print("[QuestChecker] No net data for nickname: " .. (nickname or "nil"))
+            print("[QuestChecker] No net data for nickname: " .. (playerNickname or "nil"))
             state.lastNetDataStatus = currentStatus
         end
         return nil
     end
-    local netInfo = state.netData[nickname]
+    local netInfo = state.netData[playerNickname]
     if not netInfo or not netInfo.time or not netInfo.duration then
-        currentStatus = "invalid"
+        local currentStatus = "invalid"
         if state.lastNetDataStatus ~= currentStatus and enableLogging then
-            print("[QuestChecker] Invalid netInfo for " .. nickname)
+            print("[QuestChecker] Invalid netInfo for " .. playerNickname)
             state.lastNetDataStatus = currentStatus
         end
         return nil
     end
     local currentTime = math.floor(os.time() / 60)
     if currentTime - netInfo.time > 4320 then
-        currentStatus = "outdated"
+        local currentStatus = "outdated"
         if state.lastNetDataStatus ~= currentStatus and enableLogging then
-            print("[QuestChecker] Net data for " .. nickname .. " is outdated (age: " .. (currentTime - netInfo.time) .. " minutes)")
+            print("[QuestChecker] Net data for " .. playerNickname .. " is outdated (age: " .. (currentTime - netInfo.time) .. " minutes)")
             state.lastNetDataStatus = currentStatus
         end
         return nil
     end
-    currentStatus = "valid"
+    local currentStatus = "valid"
     if state.lastNetDataStatus ~= currentStatus then
         state.lastNetDataStatus = currentStatus
     end
@@ -557,6 +541,9 @@ local function safeU8(str)
         return str or ""
     end
     local success, result = pcall(u8, str)
+    if enableLogging and not success then
+        print("[QuestChecker] Error in safeU8: " .. tostring(result))
+    end
     return success and result or str
 end
 
@@ -564,6 +551,9 @@ function sampev.onShowDialog(dialogId, style, title, button1, button2, text)
     if not isScriptActive then return true end
     if enableLogging then
         print("[QuestChecker] Dialog ID: " .. dialogId .. ", Title: " .. (title or "nil") .. ", Style: " .. style)
+        if text and text ~= "" then
+            print("[QuestChecker] Dialog text: " .. text)
+        end
     end
     if title == "{FFFFFF}Еда" and style == 5 then
         local success = pcall(function()
@@ -572,11 +562,18 @@ function sampev.onShowDialog(dialogId, style, title, button1, button2, text)
                 local escapedName = cleanName:gsub("[-]", "[-–—]")
                 local pattern = escapedName .. "%s*{.-}(%d+)"
                 local count = text and text:match(pattern) or nil
-                state.foodStock[food.command] = tonumber(count) or 0
-                state.eatenFood[food.command] = 0
+                if count then
+                    state.foodStock[food.command] = tonumber(count) or 0
+                    state.eatenFood[food.command] = 0
+                elseif enableLogging then
+                    print("[QuestChecker] Warning: No match for food " .. cleanName .. " in dialog")
+                end
             end
             state.hasInitializedFoodStock = true
         end)
+        if not success and enableLogging then
+            print("[QuestChecker] Error parsing food dialog: " .. tostring(success))
+        end
         if state.expectingEatDialog and state.selectedFoodCommand then
             local selectedIndex = -1
             local dialogIndex = 0
@@ -675,6 +672,8 @@ function sampev.onShowDialog(dialogId, style, title, button1, button2, text)
                             table.insert(state.unknownQuests, {index = questIndex, name = taskName})
                         end
                         newQuestCount = newQuestCount + 1
+                    elseif enableLogging then
+                        print("[QuestChecker] Error parsing quest line: " .. tostring(taskName))
                     end
                 end
             end
@@ -693,6 +692,7 @@ function sampev.onShowDialog(dialogId, style, title, button1, button2, text)
             sampSendDialogResponse(1013, 1, selectedIndex, -1)
             state.waitingForDialog1018 = true
             lua_thread.create(function()
+                if not isScriptActive then return end
                 wait(5000)
                 if isScriptActive and state.waitingForDialog1018 then
                     state.waitingForDialog1018 = false
@@ -705,8 +705,9 @@ function sampev.onShowDialog(dialogId, style, title, button1, button2, text)
                 MessageSender:sendChatMessage("/dailyaward")
                 state.waitingForDailyResponse = true
                 lua_thread.create(function()
-                    local timeout = os.clock() + 10
-                    while state.waitingForDailyResponse and isScriptActive and os.clock() < timeout do
+                    if not isScriptActive then return end
+                    local timeout = os.time() + 10
+                    while state.waitingForDailyResponse and isScriptActive and os.time() < timeout do
                         wait(100)
                     end
                     if isScriptActive then
@@ -725,8 +726,22 @@ function sampev.onShowDialog(dialogId, style, title, button1, button2, text)
         return false
     end
     if dialogId == 1014 and state.waitingForDialog1014 then
-        local description = text and text:match("Описание:%s*{.-}(.-)%s*\nПрогресс:") or ""
-        if description and state.unknownQuests[state.currentQuestIndex] then
+        local description = ""
+        if text and text ~= "" then
+            local success, result = pcall(function()
+                return text:match("Описание:%s*(.-)%s*\nПрогресс:") or ""
+            end)
+            if success then
+                description = result
+            elseif enableLogging then
+                print("[QuestChecker] Error parsing dialog 1014 description: " .. tostring(result))
+            end
+        else
+            if enableLogging then
+                print("[QuestChecker] Warning: Dialog 1014 text is nil or empty")
+            end
+        end
+        if description ~= "" and state.unknownQuests[state.currentQuestIndex] then
             local cleanName = description:gsub("{.-}", "")
             local questName = state.unknownQuests[state.currentQuestIndex].name
             state.questReplacements[questName] = cleanName
@@ -737,6 +752,8 @@ function sampev.onShowDialog(dialogId, style, title, button1, button2, text)
                 end
             end
             state.shouldRedraw = true
+        elseif enableLogging then
+            print("[QuestChecker] Warning: No description or invalid quest index for dialog 1014")
         end
         state.waitingForDialog1014 = false
         if state.currentQuestIndex < #state.unknownQuests then
@@ -758,8 +775,9 @@ function sampev.onShowDialog(dialogId, style, title, button1, button2, text)
                 MessageSender:sendChatMessage("/dailyaward")
                 state.waitingForDailyResponse = true
                 lua_thread.create(function()
-                    local timeout = os.clock() + 10
-                    while state.waitingForDailyResponse and isScriptActive and os.clock() < timeout do
+                    if not isScriptActive then return end
+                    local timeout = os.time() + 10
+                    while state.waitingForDailyResponse and isScriptActive and os.time() < timeout do
                         wait(100)
                     end
                     if isScriptActive then
@@ -786,6 +804,7 @@ function sampev.onServerMessage(color, text)
                 state.lastQuestCompletionTime = currentTime
                 if state.isChatOpen then
                     lua_thread.create(function()
+                        if not isScriptActive then return end
                         while state.isChatOpen and isScriptActive do
                             wait(100)
                         end
@@ -804,34 +823,34 @@ function sampev.onServerMessage(color, text)
     end
     if cleanText:find("%[Рыбалка%] Вы успешно установили рыболовную сеть") then
         lua_thread.create(function()
-            if isScriptActive then
-                wait(2000)
-                local configPath = "moonloader\\config\\Alexfish.json"
-                local netData = handleJsonFile(configPath)
-                if netData and type(netData) == "table" then
-                    local currentTime = math.floor(os.time() / 60)
-                    for nickname, netInfo in pairs(netData) do
-                        if netInfo and netInfo.time and (currentTime - netInfo.time) > 4320 then
-                            if enableLogging then
-                                print("[QuestChecker] Clearing outdated net data for " .. nickname .. " (age: " .. (currentTime - netInfo.time) .. " minutes)")
-                            end
-                            netData[nickname] = nil
+            if not isScriptActive then return end
+            wait(2000)
+            local configPath = "moonloader\\config\\Alexfish.json"
+            local netData = handleJsonFile(configPath)
+            if netData and type(netData) == "table" then
+                local currentTime = math.floor(os.time() / 60)
+                for nickname, netInfo in pairs(netData) do
+                    if netInfo and netInfo.time and (currentTime - netInfo.time) > 4320 then
+                        if enableLogging then
+                            print("[QuestChecker] Clearing outdated net data for " .. nickname .. " (age: " .. (currentTime - netInfo.time) .. " minutes)")
                         end
+                        netData[nickname] = nil
                     end
-                    state.netData = netData
-                    state.netTimeLeft = nil
-                    state.lastNetDataStatus = nil
-                else
-                    state.netData = {}
-                    state.netTimeLeft = nil
-                    state.lastNetDataStatus = nil
                 end
-                state.shouldRedraw = true
+                state.netData = netData
+                state.netTimeLeft = nil
+                state.lastNetDataStatus = nil
+            else
+                state.netData = {}
+                state.netTimeLeft = nil
+                state.lastNetDataStatus = nil
             end
+            state.shouldRedraw = true
         end)
     end
     if cleanText:find("Не флуди!") and (state.waitingForDialog1013 or state.expectingEatDialog or state.waitingForConfirmationDialog) then
         lua_thread.create(function()
+            if not isScriptActive then return end
             wait(2000)
             if isScriptActive then
                 if state.waitingForDialog1013 then
@@ -891,6 +910,9 @@ function imgui.BeforeDrawFrame()
         local success, result = pcall(function()
             local fontPath = getFolderPath(0x14) .. '\\trebucbd.ttf'
             if not doesFileExist(fontPath) then
+                if enableLogging then
+                    print("[QuestChecker] Error: Font file not found at " .. fontPath)
+                end
                 windowTitle = "QuestChecker"
                 questTitle = u8'Не выполненные задания:'
                 return nil
@@ -901,6 +923,10 @@ function imgui.BeforeDrawFrame()
                 local font_config = imgui.ImFontConfig()
                 font_config.MergeMode = true
                 state.faFont = imgui.GetIO().Fonts:AddFontFromFileTTF('moonloader/resource/fonts/fa-solid-900.ttf', 18.0, font_config, imgui.ImGlyphRanges({ fa.min_range, fa.max_range }))
+            else
+                if enableLogging then
+                    print("[QuestChecker] Warning: Font Awesome file not found")
+                end
             end
             imgui.GetIO().Fonts:Build()
             return font
@@ -908,6 +934,9 @@ function imgui.BeforeDrawFrame()
         if success and result then
             state.customFont = result
         else
+            if enableLogging then
+                print("[QuestChecker] Error loading font: " .. tostring(result))
+            end
             windowTitle = "QuestChecker"
             questTitle = u8'Не выполненные задания:'
         end
@@ -978,7 +1007,7 @@ function imgui.OnDrawFrame()
             end
             if state.fishScriptLoaded and showNets.v then
                 imgui.SetWindowFontScale(math.max(0.1, state.config.netsFontSize / 18.0))
-                local currentTime = os.clock() * 1000
+                local currentTime = os.time() * 1000
                 if currentTime - state.lastNetTimeUpdate >= state.NET_TIME_UPDATE_INTERVAL then
                     state.netTimeLeft = getNetTimeLeft()
                     state.lastNetTimeUpdate = currentTime
@@ -1008,7 +1037,9 @@ function imgui.OnDrawFrame()
                 end
             end
             imgui.PopStyleColor()
-            if state.customFont then imgui.PopFont() end
+            if state.customFont then
+                imgui.PopFont()
+            end
         end
         imgui.End()
         imgui.PopStyleColor()
@@ -1183,6 +1214,8 @@ function onReceivePacket(id, bs)
                 state.shouldRedraw = true
                 state.satietyPacketReceived = true
             end
+        elseif enableLogging then
+            print("[QuestChecker] Error in onReceivePacket: " .. tostring(result))
         end
         if not state.isFullyConnected then
             state.isFullyConnected = true
@@ -1193,6 +1226,9 @@ end
 
 function main()
     if not isSampLoaded() or not isSampfuncsLoaded() then
+        if enableLogging then
+            print("[QuestChecker] Error: SAMP or SAMPFUNCS not loaded")
+        end
         return
     end
     while not isSampAvailable() do wait(100) end
@@ -1200,7 +1236,8 @@ function main()
     MessageSender:init()
     state.messageSenderInitialized = true
     loadConfig()
-    state.fishScriptLoaded = doesFileExist("moonloader\\fish.lua")
+    updatePlayerNickname()
+    state.fishScriptLoaded = doesFileExist("moonloader\\LuaDunaevskiy\\fish.lua")
     if state.fishScriptLoaded then
         local configPath = "moonloader\\config\\Alexfish.json"
         local netData = handleJsonFile(configPath)
@@ -1233,7 +1270,7 @@ function main()
     wait(15000)
     if not isScriptActive then return end
     state.isWindowVisible = true
-    state.satietyPacketWaitStart = os.clock() * 1000
+    state.satietyPacketWaitStart = os.time() * 1000
     state.satietyPacketReceived = false
     sendEquestCommand()
     local questUpdateSent = false
@@ -1250,7 +1287,7 @@ function main()
         end
         imgui.Process = state.isWindowVisible and (state.showWindow.v or state.showSettings.v or state.showFoodSettings.v)
         if state.satietyPacketWaitStart and not state.satietyPacketReceived then
-            local currentTime = os.clock() * 1000
+            local currentTime = os.time() * 1000
             if (currentTime - state.satietyPacketWaitStart) >= state.SATIETY_PACKET_TIMEOUT then
                 state.autoEatEnabled = true
                 state.satietyPacketWaitStart = nil
@@ -1258,7 +1295,7 @@ function main()
             end
         end
         if not state.waitingForDailyResponse and state.autoEatEnabled and state.canAutoEat and not state.expectingEatDialog and not state.waitingForConfirmationDialog then
-            local currentTime = os.clock() * 1000
+            local currentTime = os.time() * 1000
             if (currentTime - state.lastCommandTime) >= 3000 then
                 if not state.hasInitializedFoodStock then
                     sendEatCommand()
@@ -1290,7 +1327,7 @@ function main()
                 end
             end
         end
-        local currentTime = os.clock() * 1000
+        local currentTime = os.time() * 1000
         if state.waitingForDialog1013 and (currentTime - state.lastEquestSendTime) > 60000 and (currentTime - state.lastCommandTime) >= 3000 then
             sendEquestCommand()
         end
@@ -1301,8 +1338,8 @@ function main()
             local minutesLeft = state.questUpdateTime - currentUTCMinutes
             if minutesLeft <= 0 and not questUpdateSent then
                 if not questUpdateDelayStart then
-                    questUpdateDelayStart = os.clock()
-                elseif os.clock() - questUpdateDelayStart >= 60 then
+                    questUpdateDelayStart = os.time()
+                elseif os.time() - questUpdateDelayStart >= 60 then
                     sendEquestCommand()
                     questUpdateSent = true
                     questUpdateDelayStart = nil
