@@ -1,0 +1,179 @@
+
+local script_name = 'Level'
+local script_version = '07/03/2025'
+local hook = require 'hooks'
+local ffi = require 'ffi'
+local imgui = require 'imgui'
+
+local gameHandle = getModuleHandle('samp.dll')
+
+-- Настройки по умолчанию
+local settings = {
+    showPing = true,
+    showLevel = true,
+    pingPosition = 'after', -- before, after, above, below
+    levelPosition = 'after', -- before, after, above, below
+    pingColor = { r = 0.0, g = 1.0, b = 0.0, a = 1.0 }, -- Зеленый
+    levelColor = { r = 0.0, g = 1.0, b = 0.0, a = 1.0 } -- Зеленый
+}
+
+-- Окно ImGui
+local showSettings = imgui.ImBool(false)
+
+function getSampVersion()
+    if gameHandle == 0 then
+        sampAddChatMessage('{FF0000}Не удалось определить версию SA:MP', -1)
+        print('{FF0000}Не удалось определить версию SA:MP')
+        thisScript():unload()
+        return nil
+    else
+        local cast = ffi.cast('long*', gameHandle + 60)[0]
+        local isR1 = ffi.cast('unsigned int*', gameHandle + cast + 40)[0] ~= 836816
+        if isR1 then
+            print("Detected SA:MP R1 (0.3.7)")
+            return 'R1'
+        else
+            print("Detected SA:MP R3 (0.3.DL)")
+            return 'R3'
+        end
+    end
+end
+
+function main()
+    if not isSampLoaded() or not isSampfuncsLoaded() then
+        print("Ошибка: SA:MP или sampfuncs не загружены")
+        return
+    end
+    while not isSampAvailable() do wait(100) end
+
+    local base = gameHandle
+    local offset
+    local sampVersion = getSampVersion()
+    if not sampVersion then return end
+
+    if sampVersion == "R1" then
+        offset = 0x70F4E
+        sampAddChatMessage("{FFFFFF}SAMP Version: {00FF00}R1 ", -1)
+    elseif sampVersion == "R3" then
+        offset = 0x74E3F
+        sampAddChatMessage("{FFFFFF}SAMP Version: {00FF00}R3 ", -1)
+    end
+
+    renderNick = hook.call.new(
+        'int(__cdecl *)(char* buf, const char* fmt, const char* nick, int id, int score, int ping)',
+        renderNick,
+        base + offset
+    )
+
+    -- Регистрация команды /level
+    sampRegisterChatCommand('level', function()
+        showSettings.v = not showSettings.v
+        sampAddChatMessage("[Level] Окно настроек: " .. tostring(showSettings.v), 0xFFFF00)
+    end)
+
+    imgui.Process = true
+    while true do
+        wait(0)
+        imgui.Process = showSettings.v
+    end
+end
+
+function renderNick(buf, fmt, nick, id)
+    local score = sampGetPlayerScore(id) or 0
+    local ping = sampGetPlayerPing(id) or 0
+    local formatStr = '%s [%d]'
+    local args = { nick, id }
+
+    -- Формирование формата в зависимости от настроек
+    if settings.showLevel then
+        local levelStr = string.format('[lvl: %d]', score)
+        local levelColor = string.format('{%02X%02X%02X}', 
+            math.floor(settings.levelColor.r * 255), 
+            math.floor(settings.levelColor.g * 255), 
+            math.floor(settings.levelColor.b * 255))
+        if settings.levelPosition == 'before' then
+            formatStr = levelColor .. levelStr .. ' ' .. formatStr
+        elseif settings.levelPosition == 'after' then
+            formatStr = formatStr .. ' ' .. levelColor .. levelStr
+        elseif settings.levelPosition == 'above' then
+            formatStr = levelColor .. levelStr .. '\n' .. formatStr
+        elseif settings.levelPosition == 'below' then
+            formatStr = formatStr .. '\n' .. levelColor .. levelStr
+        end
+    end
+
+    if settings.showPing then
+        local pingStr = string.format('[ping: %d]', ping)
+        local pingColor = string.format('{%02X%02X%02X}', 
+            math.floor(settings.pingColor.r * 255), 
+            math.floor(settings.pingColor.g * 255), 
+            math.floor(settings.pingColor.b * 255))
+        if settings.pingPosition == 'before' then
+            formatStr = pingColor .. pingStr .. ' ' .. formatStr
+        elseif settings.pingPosition == 'after' then
+            formatStr = formatStr .. ' ' .. pingColor .. pingStr
+        elseif settings.pingPosition == 'above' then
+            formatStr = pingColor .. pingStr .. '\n' .. formatStr
+        elseif settings.pingPosition == 'below' then
+            formatStr = formatStr .. '\n' .. pingColor .. pingStr
+        end
+    end
+
+    return renderNick(buf, formatStr, unpack(args))
+end
+
+-- ImGui интерфейс
+function imgui.OnDrawFrame()
+    if showSettings.v then
+        imgui.ShowCursor = true
+        local screenX, screenY = getScreenResolution()
+        imgui.SetNextWindowSize(imgui.ImVec2(400, 300), imgui.Cond.FirstUseEver)
+        imgui.SetNextWindowPos(imgui.ImVec2(screenX / 2, screenY / 2), imgui.Cond.FirstUseEver, imgui.ImVec2(0.5, 0.5))
+        imgui.Begin('Настройки Level', showSettings, imgui.WindowFlags.NoCollapse)
+        
+        imgui.Text('Настройки отображения')
+        imgui.Separator()
+        
+        if imgui.Checkbox('Показывать уровень', imgui.ImBool(settings.showLevel)) then
+            settings.showLevel = not settings.showLevel
+        end
+        imgui.Text('Положение уровня:')
+        if imgui.RadioButton('Перед ником', settings.levelPosition == 'before') then settings.levelPosition = 'before' end
+        imgui.SameLine()
+        if imgui.RadioButton('После ника', settings.levelPosition == 'after') then settings.levelPosition = 'after' end
+        if imgui.RadioButton('Над ником', settings.levelPosition == 'above') then settings.levelPosition = 'above' end
+        imgui.SameLine()
+        if imgui.RadioButton('Под ником', settings.levelPosition == 'below') then settings.levelPosition = 'below' end
+        imgui.Text('Цвет уровня:')
+        local levelColor = imgui.ImFloat4(settings.levelColor.r, settings.levelColor.g, settings.levelColor.b, settings.levelColor.a)
+        if imgui.ColorEdit4('##LevelColor', levelColor) then
+            settings.levelColor.r = levelColor.x
+            settings.levelColor.g = levelColor.y
+            settings.levelColor.b = levelColor.z
+            settings.levelColor.a = levelColor.w
+        end
+
+        imgui.Separator()
+        
+        if imgui.Checkbox('Показывать пинг', imgui.ImBool(settings.showPing)) then
+            settings.showPing = not settings.showPing
+        end
+        imgui.Text('Положение пинга:')
+        if imgui.RadioButton('Перед ником##ping', settings.pingPosition == 'before') then settings.pingPosition = 'before' end
+        imgui.SameLine()
+        if imgui.RadioButton('После ника##ping', settings.pingPosition == 'after') then settings.pingPosition = 'after' end
+        if imgui.RadioButton('Над ником##ping', settings.pingPosition == 'above') then settings.pingPosition = 'above' end
+        imgui.SameLine()
+        if imgui.RadioButton('Под ником##ping', settings.pingPosition == 'below') then settings.pingPosition = 'below' end
+        imgui.Text('Цвет пинга:')
+        local pingColor = imgui.ImFloat4(settings.pingColor.r, settings.pingColor.g, settings.pingColor.b, settings.pingColor.a)
+        if imgui.ColorEdit4('##PingColor', pingColor) then
+            settings.pingColor.r = pingColor.x
+            settings.pingColor.g = pingColor.y
+            settings.pingColor.b = pingColor.z
+            settings.pingColor.a = pingColor.w
+        end
+
+        imgui.End()
+    end
+end

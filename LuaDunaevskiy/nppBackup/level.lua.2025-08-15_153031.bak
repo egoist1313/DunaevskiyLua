@@ -18,7 +18,7 @@ local settings = {
     levelBefore = false
 }
 local showSettings = imgui.ImBool(false)
-local animAlpha = imgui.ImFloat(0.0) 
+local animAlpha = imgui.ImFloat(0.0) -- Для анимации появления
 
 function main()
     while not isSampAvailable() do wait(100) end
@@ -35,14 +35,14 @@ function main()
    
     sampRegisterChatCommand('level', function()
         showSettings.v = not showSettings.v
-        animAlpha.v = 0.0 
+        animAlpha.v = 0.0 -- Сброс анимации при открытии
     end)
    
     while true do
         wait(0)
         imgui.Process = showSettings.v
         if showSettings.v then
-            animAlpha.v = math.min(animAlpha.v + 0.05, 1.0)
+            animAlpha.v = math.min(animAlpha.v + 0.05, 1.0) -- Плавное появление
         else
             animAlpha.v = 0.0
         end
@@ -79,22 +79,22 @@ imgui.OnDrawFrame = function()
     if not showSettings.v then return end
 
     -- Стилизация
-    imgui.PushStyleColor(imgui.Col.WindowBg, imgui.ImVec4(0.1, 0.1, 0.12, 0.95)) 
-    imgui.PushStyleColor(imgui.Col.TitleBgActive, imgui.ImVec4(0.2, 0.4, 0.8, 1.0)) 
-    imgui.PushStyleColor(imgui.Col.TitleBg, imgui.ImVec4(0.15, 0.15, 0.2, 1.0)) 
-    imgui.PushStyleColor(imgui.Col.FrameBg, imgui.ImVec4(0.2, 0.2, 0.25, 0.8)) 
-    imgui.PushStyleColor(imgui.Col.FrameBgHovered, imgui.ImVec4(0.3, 0.3, 0.35, 0.9)) 
-    imgui.PushStyleColor(imgui.Col.FrameBgActive, imgui.ImVec4(0.4, 0.4, 0.45, 0.9)) 
-    imgui.PushStyleColor(imgui.Col.CheckMark, imgui.ImVec4(0.4, 0.6, 1.0, 1.0)) 
-    imgui.PushStyleColor(imgui.Col.Text, imgui.ImVec4(0.9, 0.9, 0.9, 1.0)) 
-    imgui.PushStyleColor(imgui.Col.Button, imgui.ImVec4(0.2, 0.4, 0.8, 0.7)) 
+    imgui.PushStyleColor(imgui.Col.WindowBg, imgui.ImVec4(0.1, 0.1, 0.12, 0.95)) -- Темный фон с прозрачностью
+    imgui.PushStyleColor(imgui.Col.TitleBgActive, imgui.ImVec4(0.2, 0.4, 0.8, 1.0)) -- Синий заголовок
+    imgui.PushStyleColor(imgui.Col.TitleBg, imgui.ImVec4(0.15, 0.15, 0.2, 1.0)) -- Темный неактивный заголовок
+    imgui.PushStyleColor(imgui.Col.FrameBg, imgui.ImVec4(0.2, 0.2, 0.25, 0.8)) -- Фон элементов
+    imgui.PushStyleColor(imgui.Col.FrameBgHovered, imgui.ImVec4(0.3, 0.3, 0.35, 0.9)) -- Фон при наведении
+    imgui.PushStyleColor(imgui.Col.FrameBgActive, imgui.ImVec4(0.4, 0.4, 0.45, 0.9)) -- Фон активных
+    imgui.PushStyleColor(imgui.Col.CheckMark, imgui.ImVec4(0.4, 0.6, 1.0, 1.0)) -- Цвет галочки
+    imgui.PushStyleColor(imgui.Col.Text, imgui.ImVec4(0.9, 0.9, 0.9, 1.0)) -- Цвет текста
+    imgui.PushStyleColor(imgui.Col.Button, imgui.ImVec4(0.2, 0.4, 0.8, 0.7)) -- Кнопки
     imgui.PushStyleColor(imgui.Col.ButtonHovered, imgui.ImVec4(0.3, 0.5, 0.9, 0.9))
     imgui.PushStyleColor(imgui.Col.ButtonActive, imgui.ImVec4(0.4, 0.6, 1.0, 1.0))
-    imgui.PushStyleVar(imgui.StyleVar.WindowRounding, 8.0) 
-    imgui.PushStyleVar(imgui.StyleVar.FrameRounding, 5.0) 
-    imgui.PushStyleVar(imgui.StyleVar.ItemSpacing, imgui.ImVec2(12, 10)) 
-    imgui.PushStyleVar(imgui.StyleVar.WindowPadding, imgui.ImVec2(15, 15)) 
-    imgui.PushStyleVar(imgui.StyleVar.Alpha, animAlpha.v) 
+    imgui.PushStyleVar(imgui.StyleVar.WindowRounding, 8.0) -- Закругленные углы окна
+    imgui.PushStyleVar(imgui.StyleVar.FrameRounding, 5.0) -- Закругленные углы элементов
+    imgui.PushStyleVar(imgui.StyleVar.ItemSpacing, imgui.ImVec2(12, 10)) -- Отступы
+    imgui.PushStyleVar(imgui.StyleVar.WindowPadding, imgui.ImVec2(15, 15)) -- Внутренние отступы
+    imgui.PushStyleVar(imgui.StyleVar.Alpha, animAlpha.v) -- Прозрачность для анимации
 
     -- Центрирование окна
     local windowSize = imgui.ImVec2(400, 390) -- Увеличена высота для гарантированного размещения контента
