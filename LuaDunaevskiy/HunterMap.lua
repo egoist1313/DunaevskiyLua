@@ -1,6 +1,6 @@
 -- Автор: AlexDunaevskiy, 2025 https://t.me/AlexDunaevskiy
-script_name('HunterMap')
-script_version('1.0')
+local script_name = 'HunterMap'
+local script_version = '2.0.0'
 script_properties("work-in-pause")
 
 require "lib.moonloader"

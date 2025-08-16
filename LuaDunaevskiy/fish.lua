@@ -1,6 +1,7 @@
-script_name('Fish with TextDraw Clicker')
+
 script_author('AlexDunaevskiy')
-script_version('04/05/2025')
+local script_name = 'Fish'
+local script_version = '2.0.0'
 
 local samp = require 'samp.events'
 local json = require 'json'

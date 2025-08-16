@@ -1,7 +1,6 @@
-script_name("AlexKmenu")
-script_author("AlexSwift")
-script_version("2.0")
 
+local script_name = 'AlexKmenu'
+local script_version = '2.0.0'
 require "lib.moonloader"
 require "lib.sampfuncs"
 local sampev = require "lib.samp.events"
@@ -433,7 +432,7 @@ local function processMessageQueue(message)
 end
 
 function saveSettings()
-    local configDir = getWorkingDirectory() .. "/config"
+    local configDir = getWorkingDirectory() .. "/LuaDunaevskiy/config"
     if not doesDirectoryExist(configDir) then
         createDirectory(configDir)
     end
@@ -567,7 +566,7 @@ end
 
 
 function loadSettings()
-    local configDir = getWorkingDirectory() .. "/config"
+    local configDir = getWorkingDirectory() .. "/LuaDunaevskiy/config"
 
     -- Инициализация значений по умолчанию
     initDefaultSettings()
@@ -961,7 +960,7 @@ function main()
     
     -- Список разрешённых IP-адресов серверов (без строгой проверки порта)
     local allowedIPs = {
-        "141.95.72.156",
+        "5.252.33.202",
         "legacy.samp-rp.ru"
     }
     

@@ -1,0 +1,36 @@
+{
+  "commands":{
+    "level.lua":"/level",
+    "kmenu.lua":"/kmenu",
+    "Equest1.lua":"/eq",
+    "cook.lua":"/cook 0-19",
+    "fish.lua":"/fish",
+    "logChat.lua":"/log",
+    "HunterMap.lua":"/hmap",
+    "voskDun.lua":"/vosk"
+  },
+  "descriptions":{
+    "Equest1.lua":"Виджет для отслеживания дейликов/автопоедание еды",
+    "cook.lua":"Автоматизация приготовления еды в игре",
+    "HunterMap.lua":"Карта для охотника и небольшая автоматизация",
+    "level.lua":"Отображение пинга и уровня в нике персонажей",
+    "VoskBladwin.exe":"Приложение для голосового управления",
+    "logChat.lua":"Логирование чата в игре",
+    "fish.lua":"Автоматизация рыбной ловли",
+    "kmenu.lua":"Скрипт для похищений",
+    "voskDun.lua":"Голос в текст"
+  },
+  "files":{
+    "VoskBladwin.exe":"1.0.0"
+  },
+  "versions":{
+    "level.lua":"2.0.0",
+    "HunterMap.lua":"1.0.0",
+    "Equest1.lua":"1.0.0",
+    "cook.lua":"1.0.0",
+    "fish.lua":"1.0.0",
+    "logChat.lua":"1.0.0",
+    "kmenu.lua":"1.0.0",
+    "voskDun.lua":"2.0"
+  }
+}
