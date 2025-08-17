@@ -15,7 +15,7 @@
 	{"name": "passport_values.txt", "version": "1.0.1", "path": "LuaDunaevskiy/passport_values.txt", "run_after_download": false, "description": "Список сумм для похищений"}
   ],
   "libraries": [
-    {"name": "messagesender.lua", "version": "1.0.1", "path": "lib/messagesender.lua", "description": "Библиотека для антифлуда"},
+    {"name": "messagesender.lua", "version": "1.0.1", "path": "lib/messagesender.lua", "description": "Библиотека для игнора антифлуда"},
 	{"name": "hooks.lua", "version": "1.0.1", "path": "lib/hooks.lua", "description": "Библиотека от RTD vmt+jmp/call hook"}
   ]
 }
