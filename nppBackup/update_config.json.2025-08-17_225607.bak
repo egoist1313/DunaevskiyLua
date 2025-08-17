@@ -13,6 +13,6 @@
     {"name": "VoskBladwin.exe", "version": "1.0.0", "path": "LuaDunaevskiy/VoskBladwin.exe", "run_after_download": true, "description": "Приложение для голосового управления"}
   ],
   "libraries": [
-    {"name": "messagesender.lua", "version": "1.0.0", "path": "lib/messagesender.lua", "description": "Библиотека для игнора антифлуда"}
+    {"name": "messagesender.lua", "version": "1.0.0", "path": "LuaDunaevskiy/messagesender.lua", "description": "Библиотека для игнора антифлуда"}
   ]
 }
