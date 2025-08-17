@@ -13,7 +13,7 @@
 	local u8 = encoding.UTF8
 
 	-- Пути к файлам и папкам
-	local log_folder = getWorkingDirectory() .. "\\LuaDunaevskiy\\logChat"
+	local log_folder = getWorkingDirectory() .. "\\logChat"
 	local sms_log_file = log_folder .. "\\sms.txt"
 	local announcement_log_file = log_folder .. "\\announcement.txt"
 	local admin_log_file = log_folder .. "\\admin.txt"
