@@ -1,6 +1,6 @@
-local script_name("PacketAnalyzer")
-local script_author("Grok")
-local script_version("1.0")
+script_name("PacketAnalyzer")
+script_author("Grok")
+script_version("1.0")
 
 require 'samp.events'
 
