@@ -17,7 +17,7 @@ local fishStartTextdraw = nil
 local fishLineTextdraw = nil
 local fishTargetTextdraw = nil
 local netData = {}
-local configPath = getWorkingDirectory() .. "\\LuaDunaevskiy\\config\\Alexfish.json"
+local configPath = getWorkingDirectory() .. "\\config\\Alexfish.json"
 
 -- Глобальные переменные для автокликера
 local targetModelIds = {1604, 1600, 19630, 1599} -- Рыба

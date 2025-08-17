@@ -10,7 +10,7 @@ local MessageSender = require "lib.messagesender"
 local imgui = require "mimgui"
 
 -- Путь к файлу для сохранения данных
-local SAVE_FILE = "moonloader/LuaDunaevskiy/object_markers.txt"
+local SAVE_FILE = "moonloader/object_markers.txt"
 
 -- Список целевых моделей объектов для ObjectMarker
 local targetModels = {1608, 1609, 19315, 19833}

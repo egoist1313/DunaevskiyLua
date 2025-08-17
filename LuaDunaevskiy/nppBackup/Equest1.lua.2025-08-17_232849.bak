@@ -52,7 +52,7 @@ local state = {
         showNets = true,
         showSatiety = true
     },
-    configFile = "moonloader\\LuaDunaevskiy\\config\\Equest\\QuestChecker.json",
+    configFile = "moonloader\\config\\Equest\\QuestChecker.json",
     questReplacements = {},
     shouldRedraw = false,
     questData = {},
@@ -825,7 +825,7 @@ function sampev.onServerMessage(color, text)
         lua_thread.create(function()
             if not isScriptActive then return end
             wait(2000)
-            local configPath = "moonloader\\LuaDunaevskiy\\config\\Alexfish.json"
+            local configPath = "moonloader\\config\\Alexfish.json"
             local netData = handleJsonFile(configPath)
             if netData and type(netData) == "table" then
                 local currentTime = math.floor(os.time() / 60)
