@@ -13,6 +13,7 @@
     {"name": "VoskBladwin.exe", "version": "1.0.0", "path": "LuaDunaevskiy/VoskBladwin.exe", "run_after_download": true, "description": "Приложение для голосового управления"},
 	{"name": "object_markers.txt", "version": "1.0.0", "path": "LuaDunaevskiy/object_markers.txt", "run_after_download": false, "description": "Метки для карты охотника"},
 	{"name": "passport_values.txt", "version": "1.0.0", "path": "LuaDunaevskiy/passport_values.txt", "run_after_download": false, "description": "Список сумм для похищений"}
+	
   ],
   "libraries": [
     {"name": "messagesender.lua", "version": "1.0.0", "path": "lib/messagesender.lua", "description": "Библиотека для игнора антифлуда"}
