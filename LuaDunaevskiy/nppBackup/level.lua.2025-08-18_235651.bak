@@ -13,19 +13,6 @@ local u8 = encoding.UTF8
 local gameHandle = getModuleHandle('samp.dll')
 local settings_file = getWorkingDirectory() .. "\\LuaDunaevskiy\\config\\Level.json"
 
--- Функция логирования
-local function logToFile(message)
-    local log_path = getWorkingDirectory() .. "\\moonloader\\LuaDunaevskiy\\"
-    if not doesDirectoryExist(log_path) then
-        createDirectory(log_path)
-    end
-    local file = io.open(log_path .. "level.log", "a")
-    if file then
-        file:write(os.date("[%Y-%m-%d %H:%M:%S] ") .. message .. "\n")
-        file:close()
-    end
-end
-
 -- Настройки по умолчанию
 local default_settings = {
     showPing = true,
@@ -51,7 +38,6 @@ local function save_settings()
         file:close()
     else
         sampAddChatMessage("[Level] Не удалось сохранить настройки в " .. settings_file, 0xFF0000)
-        logToFile("Не удалось сохранить настройки в " .. settings_file)
     end
 end
 
@@ -73,7 +59,6 @@ local function load_settings()
                     end
                 else
                     sampAddChatMessage("[Level] Некорректный JSON в " .. settings_file .. ". Используются настройки по умолчанию.", 0xFF0000)
-                    logToFile("Некорректный JSON в " .. settings_file)
                     settings = default_settings
                     save_settings()
                 end
@@ -89,23 +74,14 @@ local function load_settings()
 end
 
 function main()
-    -- Ожидание инициализации Updater
-    local timeout = 10000 -- 10 секунд
-    local start_time = os.clock()
-    while not _G.UpdaterCheckAuth and (os.clock() - start_time) * 1000 < timeout do
-        wait(100)
-    end
+    -- Проверка авторизации
     if not _G.UpdaterCheckAuth then
         sampAddChatMessage("[Level] Ошибка: Updater не запущен", 0xFF0000)
-        logToFile("Ошибка: Updater не запущен")
         return
     end
-
-    -- Проверка авторизации
     local success, token = _G.UpdaterCheckAuth("Level.lua")
     if not success then
         sampAddChatMessage("[Level] Скрипт не авторизован", 0xFF0000)
-        logToFile("Скрипт не авторизован")
         return
     end
     local serverIP = sampGetCurrentServerAddress()
@@ -113,10 +89,8 @@ function main()
     local expected_token = md5.sumhexa(playerName .. serverIP .. tostring(os.time()))
     if token ~= expected_token then
         sampAddChatMessage("[Level] Неверный токен авторизации", 0xFF0000)
-        logToFile("Неверный токен авторизации: получен=" .. tostring(token) .. ", ожидался=" .. expected_token)
         return
     end
-    logToFile("Авторизация успешна: ник=" .. playerName .. ", IP=" .. serverIP)
 
     while not isSampAvailable() do wait(100) end
     load_settings()
