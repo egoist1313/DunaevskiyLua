@@ -1,7 +1,7 @@
-local script_author = 'Cosmo mod AlexSwift'
-local script_name = 'Speedometer X'
-local script_version = '2.0.0'
+script_author("Cosmo mod AlexSwift")
+script_name("Speedometer X")
 script_properties("work-in-pause")
+
 local ffi = require "ffi"
 local imgui = require "mimgui"
 local memory = require "memory"
@@ -20,7 +20,7 @@ local cfg = ini.load({
     }
 }, "LuaDunaevskiy\\config\\" .. thisScript().name .. ".ini")
 
-
+-- Перемещаем получение разрешения экрана на глобальный уровень
 local sW, sH = getScreenResolution()
 local currentPos = imgui.ImVec2(sW - cfg.pos_offset.x, sH - cfg.pos_offset.y)
 

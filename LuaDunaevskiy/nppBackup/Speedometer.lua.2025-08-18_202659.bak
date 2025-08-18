@@ -20,7 +20,7 @@ local cfg = ini.load({
     }
 }, "LuaDunaevskiy\\config\\" .. thisScript().name .. ".ini")
 
-
+-- Перемещаем получение разрешения экрана на глобальный уровень
 local sW, sH = getScreenResolution()
 local currentPos = imgui.ImVec2(sW - cfg.pos_offset.x, sH - cfg.pos_offset.y)
 
