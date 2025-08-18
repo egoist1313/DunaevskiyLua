@@ -1,7 +1,3 @@
-local script_name = 'DialogLogger'
-local script_author = 'YourName'
-local script_version = '1.0'
-
 -- DialogLogger.lua
 local sampev = require 'lib.samp.events' -- Подключаем библиотеку для работы с событиями SA-MP
 

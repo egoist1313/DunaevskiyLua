@@ -1,6 +1,6 @@
-local script_name = 'TextDraw Info'
-local script_author = 'YourName'
-local script_version = '1.0'
+local script_name('TextDraw Info')
+local script_author('YourName')
+local script_version('1.0')
 
 require "lib.sampfuncs"
 local sampevents = require 'samp.events' -- Используем локальную переменную, как в cook
