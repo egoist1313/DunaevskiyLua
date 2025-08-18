@@ -1,6 +1,6 @@
 {
   "scripts": [
-    {"name": "cook.lua", "version": "1.0.3", "path": "LuaDunaevskiy/1/cook.lua", "description": "Автоматизация приготовления еды в игре", "command": "/cook 0-19"},
+    {"name": "cook.lua", "version": "1.0.2", "path": "LuaDunaevskiy/1/cook.lua", "description": "Автоматизация приготовления еды в игре", "command": "/cook 0-19"},
     {"name": "Equest1.lua", "version": "1.0.2", "path": "LuaDunaevskiy/Equest1.lua", "description": "Виджет для отслеживания дейликов/автопоедание еды", "command": "/eq"},
     {"name": "fish.lua", "version": "1.0.1", "path": "LuaDunaevskiy/fish.lua", "description": "Автоматизация рыбной ловли", "command": "/fish"},
     {"name": "kmenu.lua", "version": "1.0.1", "path": "LuaDunaevskiy/kmenu.lua", "description": "Скрипт для похищений", "command": "/kmenu"},
