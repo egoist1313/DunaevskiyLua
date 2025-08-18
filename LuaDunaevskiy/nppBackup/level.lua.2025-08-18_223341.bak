@@ -12,19 +12,6 @@ local u8 = encoding.UTF8
 local gameHandle = getModuleHandle('samp.dll')
 local settings_file = getWorkingDirectory() .. "\\LuaDunaevskiy\\config\\Level.json"
 
--- Функция логирования
-local function logToFile(message)
-    local log_path = getWorkingDirectory() .. "\\moonloader\\LuaDunaevskiy\\"
-    if not doesDirectoryExist(log_path) then
-        createDirectory(log_path)
-    end
-    local file = io.open(log_path .. "level.log", "a")
-    if file then
-        file:write(os.date("[%Y-%m-%d %H:%M:%S] ") .. message .. "\n")
-        file:close()
-    end
-end
-
 -- Настройки по умолчанию
 local default_settings = {
     showPing = true,
@@ -50,7 +37,6 @@ local function save_settings()
         file:close()
     else
         sampAddChatMessage("[Level] Не удалось сохранить настройки в " .. settings_file, 0xFF0000)
-        logToFile("Не удалось сохранить настройки в " .. settings_file)
     end
 end
 
@@ -72,7 +58,6 @@ local function load_settings()
                     end
                 else
                     sampAddChatMessage("[Level] Некорректный JSON в " .. settings_file .. ". Используются настройки по умолчанию.", 0xFF0000)
-                    logToFile("Некорректный JSON в " .. settings_file .. ": " .. tostring(data))
                     settings = default_settings
                     save_settings()
                 end
@@ -90,20 +75,17 @@ end
 function main()
     if not isSampAvailable() then
         sampAddChatMessage("[Level] Ожидание загрузки SA:MP...", 0xFFFF00)
-        logToFile("Ожидание загрузки SA:MP")
         while not isSampAvailable() do wait(100) end
     end
 
     -- Проверка авторизации
     if not _G.UpdaterCheckAuth then
         sampAddChatMessage("[Level] Ошибка: Апдейтер не запущен", 0xFF0000)
-        logToFile("Ошибка: Апдейтер не запущен")
         return
     end
     local success, auth = _G.UpdaterCheckAuth("Level.lua")
     if not success or not auth then
         sampAddChatMessage("[Level] Скрипт не авторизован", 0xFF0000)
-        logToFile("Скрипт не авторизован")
         return
     end
     -- Проверка токена
@@ -112,10 +94,8 @@ function main()
     local expected_token = md5.sumhexa(playerName .. serverIP .. os.time())
     if auth.token ~= expected_token then
         sampAddChatMessage("[Level] Неверный токен авторизации", 0xFF0000)
-        logToFile("Неверный токен авторизации: получен=" .. tostring(auth.token) .. ", ожидался=" .. expected_token)
         return
     end
-    logToFile("Авторизация успешна: ник=" .. playerName .. ", IP=" .. serverIP)
 
     -- Загружаем настройки
     load_settings()
@@ -133,7 +113,6 @@ function main()
     sampRegisterChatCommand('level', function()
         showSettings.v = not showSettings.v
         animAlpha.v = 0.0
-        logToFile("Открытие/закрытие настроек: " .. tostring(showSettings.v))
     end)
 
     while true do
@@ -190,62 +169,4 @@ imgui.OnDrawFrame = function()
     imgui.PushStyleVar(imgui.StyleVar.WindowPadding, imgui.ImVec2(15, 15))
     imgui.PushStyleVar(imgui.StyleVar.Alpha, animAlpha.v)
 
-    local windowSize = imgui.ImVec2(400, 390)
-    local displaySize = imgui.GetIO().DisplaySize
-    imgui.SetNextWindowSize(windowSize, imgui.Cond.FirstUseEver)
-    imgui.SetNextWindowPos(imgui.ImVec2(displaySize.x * 0.5, displaySize.y * 0.5), imgui.Cond.FirstUseEver, imgui.ImVec2(0.5, 0.5))
-
-    imgui.Begin(u8'Настройки Level', showSettings, imgui.WindowFlags.NoResize + imgui.WindowFlags.NoCollapse + imgui.WindowFlags.NoScrollbar)
-    imgui.TextColored(imgui.ImVec4(0.4, 0.7, 1.0, 1.0), u8'Настройки отображения')
-    imgui.Separator()
-    imgui.Spacing()
-
-    imgui.Text(u8'Уровень игрока:')
-    if imgui.Checkbox(u8'Показывать уровень', imgui.ImBool(settings.showLevel)) then
-        settings.showLevel = not settings.showLevel
-        save_settings()
-        logToFile("Изменена настройка showLevel: " .. tostring(settings.showLevel))
-    end
-    imgui.Indent(20)
-    if imgui.Checkbox(u8'Перед ником', imgui.ImBool(settings.levelBefore)) then
-        settings.levelBefore = not settings.levelBefore
-        save_settings()
-        logToFile("Изменена настройка levelBefore: " .. tostring(settings.levelBefore))
-    end
-    if imgui.Checkbox(u8'На новой строке', imgui.ImBool(settings.levelNewLine)) then
-        settings.levelNewLine = not settings.levelNewLine
-        save_settings()
-        logToFile("Изменена настройка levelNewLine: " .. tostring(settings.levelNewLine))
-    end
-    imgui.Unindent(20)
-    imgui.Spacing()
-    imgui.Separator()
-    imgui.Spacing()
-
-    imgui.Text(u8'Пинг игрока:')
-    if imgui.Checkbox(u8'Показывать пинг', imgui.ImBool(settings.showPing)) then
-        settings.showPing = not settings.showPing
-        save_settings()
-        logToFile("Изменена настройка showPing: " .. tostring(settings.showPing))
-    end
-    imgui.Indent(20)
-    if imgui.Checkbox(u8'Перед ником##ping', imgui.ImBool(settings.pingBefore)) then
-        settings.pingBefore = not settings.pingBefore
-        save_settings()
-        logToFile("Изменена настройка pingBefore: " .. tostring(settings.pingBefore))
-    end
-    if imgui.Checkbox(u8'На новой строке##ping', imgui.ImBool(settings.pingNewLine)) then
-        settings.pingNewLine = not settings.pingNewLine
-        save_settings()
-        logToFile("Изменена настройка pingNewLine: " .. tostring(settings.pingNewLine))
-    end
-    imgui.Unindent(20)
-    imgui.Spacing()
-    imgui.Separator()
-
-    imgui.TextColored(imgui.ImVec4(0.6, 0.6, 0.6, 1.0), u8'Level v'..script_version..' by '..script_name)
-    imgui.End()
-
-    imgui.PopStyleVar(5)
-    imgui.PopStyleColor(11)
-end
+    local windowSize = imgui.ImVec2(400,
