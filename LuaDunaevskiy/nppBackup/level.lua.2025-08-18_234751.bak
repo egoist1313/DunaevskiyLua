@@ -73,6 +73,11 @@ local function load_settings()
     end
 end
 
+-- Функция получения ника игрока
+function getMyNick()
+    return sampGetPlayerNickname(select(2, sampGetPlayerIdByCharHandle(PLAYER_PED)))
+end
+
 function main()
     -- Проверка авторизации
     if not _G.UpdaterCheckAuth then
@@ -85,7 +90,7 @@ function main()
         return
     end
     local serverIP = sampGetCurrentServerAddress()
-    local playerName = sampGetPlayerNickname(select(2, sampGetPlayerIdByCharHandle(PLAYER_PED))) or ""
+    local playerName = getMyNick() or ""
     local expected_token = md5.sumhexa(playerName .. serverIP .. tostring(os.time()))
     if token ~= expected_token then
         sampAddChatMessage("[Level] Неверный токен авторизации", 0xFF0000)
