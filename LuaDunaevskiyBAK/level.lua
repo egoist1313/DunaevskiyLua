@@ -1,0 +1,204 @@
+local script_name = 'Level'
+local script_version = '2.0.0'
+script_properties("work-in-pause")
+local hook = require 'hooks'
+local ffi = require 'ffi'
+local imgui = require 'imgui'
+local encoding = require 'encoding'
+local json = require 'json'
+encoding.default = 'CP1251'
+local u8 = encoding.UTF8
+local gameHandle = getModuleHandle('samp.dll')
+local settings_file = getWorkingDirectory() .. "\\LuaDunaevskiy\\config\\Level.json"
+
+-- Настройки по умолчанию
+local default_settings = {
+    showPing = true,
+    showLevel = true,
+    pingNewLine = false,
+    levelNewLine = false,
+    pingBefore = false,
+    levelBefore = false
+}
+local settings = default_settings
+local showSettings = imgui.ImBool(false)
+local animAlpha = imgui.ImFloat(0.0)
+
+-- Функция для сохранения настроек
+local function save_settings()
+    local config_folder = getWorkingDirectory() .. "\\LuaDunaevskiy\\config"
+    if not doesDirectoryExist(config_folder) then
+        createDirectory(config_folder)
+    end
+    local file = io.open(settings_file, "w")
+    if file then
+        file:write(json.encode(settings))
+        file:close()
+    else
+        sampAddChatMessage("[Level] Не удалось сохранить настройки в " .. settings_file, 0xFF0000)
+    end
+end
+
+-- Функция для загрузки настроек
+local function load_settings()
+    if doesFileExist(settings_file) then
+        local file = io.open(settings_file, "r")
+        if file then
+            local content = file:read("*a")
+            file:close()
+            if content and content:match("%S") then
+                local success, data = pcall(json.decode, content)
+                if success and data then
+                    settings = data
+                    -- Проверяем, что все необходимые ключи присутствуют
+                    for k, v in pairs(default_settings) do
+                        if settings[k] == nil then
+                            settings[k] = v
+                        end
+                    end
+                else
+                    sampAddChatMessage("[Level] Некорректный JSON в " .. settings_file .. ". Используются настройки по умолчанию.", 0xFF0000)
+                    settings = default_settings
+                    save_settings()
+                end
+            else
+                save_settings()
+            end
+        else
+            save_settings()
+        end
+    else
+        save_settings()
+    end
+end
+
+function main()
+    while not isSampAvailable() do wait(100) end
+    
+    -- Загружаем настройки
+    load_settings()
+    
+    local offset = ffi.cast('long*', gameHandle + 60)[0]
+    local isR1 = ffi.cast('unsigned int*', gameHandle + offset + 40)[0] ~= 836816
+    offset = isR1 and 0x70F4E or 0x74E3F
+    
+    renderNick = hook.call.new(
+        'int(__cdecl *)(char* buf, const char* fmt, const char* nick, int id, int score, int ping)',
+        renderNick,
+        gameHandle + offset
+    )
+    
+    sampRegisterChatCommand('level', function()
+        showSettings.v = not showSettings.v
+        animAlpha.v = 0.0
+    end)
+    
+    while true do
+        wait(0)
+        imgui.Process = showSettings.v
+        if showSettings.v then
+            animAlpha.v = math.min(animAlpha.v + 0.05, 1.0)
+        else
+            animAlpha.v = 0.0
+        end
+    end
+end
+
+function renderNick(buf, fmt, nick, id, score, ping)
+    local formatStr = '%s [%d]'
+    local levelStr = settings.showLevel and string.format('[lvl: %d]', sampGetPlayerScore(id) or 0) or ''
+    local pingStr = settings.showPing and string.format('[ping: %d]', sampGetPlayerPing(id) or 0) or ''
+    
+    -- Обработка уровня
+    if settings.showLevel then
+        if settings.levelNewLine then
+            formatStr = settings.levelBefore and (levelStr..'\n'..formatStr) or (formatStr..'\n'..levelStr)
+        else
+            formatStr = settings.levelBefore and (levelStr..' '..formatStr) or (formatStr..' '..levelStr)
+        end
+    end
+    
+    -- Обработка пинга
+    if settings.showPing then
+        if settings.pingNewLine then
+            formatStr = settings.pingBefore and (pingStr..'\n'..formatStr) or (formatStr..'\n'..pingStr)
+        else
+            formatStr = settings.pingBefore and (pingStr..' '..formatStr) or (formatStr..' '..pingStr)
+        end
+    end
+    
+    return renderNick(buf, formatStr, nick, id, score, ping)
+end
+
+imgui.OnDrawFrame = function()
+    if not showSettings.v then return end
+    -- Стилизация
+    imgui.PushStyleColor(imgui.Col.WindowBg, imgui.ImVec4(0.1, 0.1, 0.12, 0.95))
+    imgui.PushStyleColor(imgui.Col.TitleBgActive, imgui.ImVec4(0.2, 0.4, 0.8, 1.0))
+    imgui.PushStyleColor(imgui.Col.TitleBg, imgui.ImVec4(0.15, 0.15, 0.2, 1.0))
+    imgui.PushStyleColor(imgui.Col.FrameBg, imgui.ImVec4(0.2, 0.2, 0.25, 0.8))
+    imgui.PushStyleColor(imgui.Col.FrameBgHovered, imgui.ImVec4(0.3, 0.3, 0.35, 0.9))
+    imgui.PushStyleColor(imgui.Col.FrameBgActive, imgui.ImVec4(0.4, 0.4, 0.45, 0.9))
+    imgui.PushStyleColor(imgui.Col.CheckMark, imgui.ImVec4(0.4, 0.6, 1.0, 1.0))
+    imgui.PushStyleColor(imgui.Col.Text, imgui.ImVec4(0.9, 0.9, 0.9, 1.0))
+    imgui.PushStyleColor(imgui.Col.Button, imgui.ImVec4(0.2, 0.4, 0.8, 0.7))
+    imgui.PushStyleColor(imgui.Col.ButtonHovered, imgui.ImVec4(0.3, 0.5, 0.9, 0.9))
+    imgui.PushStyleColor(imgui.Col.ButtonActive, imgui.ImVec4(0.4, 0.6, 1.0, 1.0))
+    imgui.PushStyleVar(imgui.StyleVar.WindowRounding, 8.0)
+    imgui.PushStyleVar(imgui.StyleVar.FrameRounding, 5.0)
+    imgui.PushStyleVar(imgui.StyleVar.ItemSpacing, imgui.ImVec2(12, 10))
+    imgui.PushStyleVar(imgui.StyleVar.WindowPadding, imgui.ImVec2(15, 15))
+    imgui.PushStyleVar(imgui.StyleVar.Alpha, animAlpha.v)
+    -- Центрирование окна
+    local windowSize = imgui.ImVec2(400, 390)
+    local displaySize = imgui.GetIO().DisplaySize
+    imgui.SetNextWindowSize(windowSize, imgui.Cond.FirstUseEver)
+    imgui.SetNextWindowPos(imgui.ImVec2(displaySize.x * 0.5, displaySize.y * 0.5), imgui.Cond.FirstUseEver, imgui.ImVec2(0.5, 0.5))
+    -- Начало окна без прокрутки
+    imgui.Begin(u8'Настройки Level', showSettings, imgui.WindowFlags.NoResize + imgui.WindowFlags.NoCollapse + imgui.WindowFlags.NoScrollbar)
+    -- Заголовок
+    imgui.TextColored(imgui.ImVec4(0.4, 0.7, 1.0, 1.0), u8'Настройки отображения')
+    imgui.Separator()
+    imgui.Spacing()
+    -- Секция уровня
+    imgui.Text(u8'Уровень игрока:')
+    if imgui.Checkbox(u8'Показывать уровень', imgui.ImBool(settings.showLevel)) then
+        settings.showLevel = not settings.showLevel
+        save_settings()
+    end
+    imgui.Indent(20)
+    if imgui.Checkbox(u8'Перед ником', imgui.ImBool(settings.levelBefore)) then
+        settings.levelBefore = not settings.levelBefore
+        save_settings()
+    end
+    if imgui.Checkbox(u8'На новой строке', imgui.ImBool(settings.levelNewLine)) then
+        settings.levelNewLine = not settings.levelNewLine
+        save_settings()
+    end
+    imgui.Unindent(20)
+    imgui.Spacing()
+    imgui.Separator()
+    imgui.Spacing()
+    -- Секция пинга
+    imgui.Text(u8'Пинг игрока:')
+    if imgui.Checkbox(u8'Показывать пинг', imgui.ImBool(settings.showPing)) then
+        settings.showPing = not settings.showPing
+        save_settings()
+    end
+    imgui.Indent(20)
+    if imgui.Checkbox(u8'Перед ником##ping', imgui.ImBool(settings.pingBefore)) then
+        settings.pingBefore = not settings.pingBefore
+        save_settings()
+    end
+    if imgui.Checkbox(u8'На новой строке##ping', imgui.ImBool(settings.pingNewLine)) then
+        settings.pingNewLine = not settings.pingNewLine
+        save_settings()
+    end
+    imgui.Unindent(20)
+    imgui.Spacing()
+    imgui.Separator()
+    imgui.TextColored(imgui.ImVec4(0.6, 0.6, 0.6, 1.0), u8'Level v'..script_version..' by '..script_name)
+    imgui.End()
+    imgui.PopStyleVar(5)
+    imgui.PopStyleColor(11)
+end

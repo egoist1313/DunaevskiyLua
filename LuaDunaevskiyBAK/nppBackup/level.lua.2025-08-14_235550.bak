@@ -1,0 +1,37 @@
+script_name('LevelTest')
+script_version('07/03/2025')
+require "lib.moonloader"
+local imgui = require 'imgui'
+
+local showWindow = imgui.ImBool(false)
+
+function main()
+    if imgui == nil then
+        print("Ошибка: ImGui не загружен")
+        return
+    end
+
+    print("Скрипт LevelTest загружен")
+    sampRegisterChatCommand('testlevel', function()
+        showWindow.v = not showWindow.v
+        sampAddChatMessage("[LevelTest] Окно: " .. tostring(showWindow.v), 0xFFFF00)
+        print("[LevelTest] Команда /testlevel, showWindow.v = " .. tostring(showWindow.v))
+    end)
+
+    imgui.Process = true
+    while true do
+        wait(0)
+        imgui.Process = showWindow.v
+    end
+end
+
+imgui.OnDrawFrame = function()
+    if showWindow.v then
+        imgui.Begin("Test Window")
+        imgui.Text("Hello, ImGui!")
+        if imgui.Button("Close") then
+            showWindow.v = false
+        end
+        imgui.End()
+    end
+end
