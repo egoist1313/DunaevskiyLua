@@ -4,7 +4,7 @@
     {"name": "Equest1.lua", "version": "1.0.2", "path": "LuaDunaevskiy/Equest1.lua", "description": "Виджет для отслеживания дейликов/автопоедание еды", "command": "/eq"},
     {"name": "fish.lua", "version": "1.0.1", "path": "LuaDunaevskiy/fish.lua", "description": "Автоматизация рыбной ловли", "command": "/fish"},
     {"name": "kmenu.lua", "version": "1.0.1", "path": "LuaDunaevskiy/kmenu.lua", "description": "Скрипт для похищений", "command": "/kmenu"},
-    {"name": "level.lua", "version": "2.0.4", "path": "LuaDunaevskiy/level.lua", "description": "Отображение пинга и уровня в нике персонажей", "command": "/level"},
+    {"name": "level.lua", "version": "2.0.3", "path": "LuaDunaevskiy/level.lua", "description": "Отображение пинга и уровня в нике персонажей", "command": "/level"},
     {"name": "logChat.lua", "version": "1.0.1", "path": "LuaDunaevskiy/logChat.lua", "description": "Логирование чата в игре", "command": "/log"},
     {"name": "HunterMap.lua", "version": "1.0.1", "path": "LuaDunaevskiy/HunterMap.lua", "description": "Карта для охотника и небольшая автоматизация", "command": "/hmap"},
     {"name": "voskDun.lua", "version": "2.1", "path": "LuaDunaevskiy/voskDun.lua", "description": "Голос в текст", "command": "/vosk"},
