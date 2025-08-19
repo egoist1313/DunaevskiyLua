@@ -7,7 +7,7 @@
     "fish.lua",
     "voskDun.lua"
   ],
-  "players": [
+  "users": [
     {
       "nickname": "Alexandr_Dunaevskiy",
       "server_ip": "5.252.33.202",
