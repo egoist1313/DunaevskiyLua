@@ -11,28 +11,16 @@ local u8 = encoding.UTF8
 local gameHandle = getModuleHandle('samp.dll')
 local settings_file = getWorkingDirectory() .. "\\LuaDunaevskiy\\config\\Level.json"
 
--- Функция логирования для Level
-local function logToFile(message)
-    local log_path = getWorkingDirectory() .. "\\moonloader\\LuaDunaevskiy\\level.log"
-    local file = io.open(log_path, "a")
-    if file then
-        file:write(os.date("[%Y-%m-%d %H:%M:%S] ") .. message .. "\n")
-        file:close()
-    end
-end
-
 -- Функция проверки ключа
 local function check_key()
     local key_path = getWorkingDirectory() .. "\\moonloader\\LuaDunaevskiy\\updater_key.json"
     if not doesFileExist(key_path) then
         sampAddChatMessage("[Level] Ошибка: Ключ от updater.lua не найден", 0xFF0000)
-        logToFile("Ошибка: Ключ от updater.lua не найден")
         return false
     end
     local file = io.open(key_path, "r")
     if not file then
         sampAddChatMessage("[Level] Ошибка: Не удалось прочитать ключ от updater.lua", 0xFF0000)
-        logToFile("Ошибка: Не удалось прочитать ключ от updater.lua")
         return false
     end
     local content = file:read("*a"):gsub("^\239\187\191", "")
@@ -40,18 +28,15 @@ local function check_key()
     local success, key_data = pcall(json.decode, content)
     if not success or not key_data then
         sampAddChatMessage("[Level] Ошибка: Неверный формат ключа", 0xFF0000)
-        logToFile("Ошибка: Неверный формат ключа")
         return false
     end
     -- Проверяем, есть ли Level.lua в списке разрешённых скриптов
     for _, script_name in ipairs(key_data.scripts or {}) do
         if script_name == "Level.lua" then
-            logToFile("Доступ к Level.lua разрешён")
             return true
         end
     end
     sampAddChatMessage("[Level] Ошибка: Доступ к скрипту Level.lua не разрешён", 0xFF0000)
-    logToFile("Ошибка: Доступ к Level.lua не разрешён")
     return false
 end
 
@@ -78,10 +63,8 @@ local function save_settings()
     if file then
         file:write(json.encode(settings))
         file:close()
-        logToFile("Настройки сохранены в " .. settings_file)
     else
         sampAddChatMessage("[Level] Не удалось сохранить настройки в " .. settings_file, 0xFF0000)
-        logToFile("Не удалось сохранить настройки в " .. settings_file)
     end
 end
 
@@ -101,10 +84,8 @@ local function load_settings()
                             settings[k] = v
                         end
                     end
-                    logToFile("Настройки загружены из " .. settings_file)
                 else
                     sampAddChatMessage("[Level] Некорректный JSON в " .. settings_file .. ". Используются настройки по умолчанию.", 0xFF0000)
-                    logToFile("Некорректный JSON в " .. settings_file)
                     settings = default_settings
                     save_settings()
                 end
@@ -123,7 +104,6 @@ function main()
     -- Проверка зависимости от updater.lua
     if not script.find("updater.lua") then
         sampAddChatMessage("[Level] Ошибка: Скрипт 'updater.lua' не загружен", 0xFF0000)
-        logToFile("Ошибка: Скрипт 'updater.lua' не загружен")
         return
     end
     -- Проверка ключа
@@ -148,7 +128,6 @@ function main()
     sampRegisterChatCommand('level', function()
         showSettings.v = not showSettings.v
         animAlpha.v = 0.0
-        logToFile("Команда /level выполнена, меню настроек: " .. tostring(showSettings.v))
     end)
     
     while true do
