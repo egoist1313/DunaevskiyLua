@@ -11,7 +11,7 @@ local enableLogging = true -- Ћогирование (true - включено, false - отключено)
 local enableAllWeatherIds = false -- ¬ключение всех ID (0Ц255) в выпадающем списке (осторожно, баги!)
 
 -- ѕуть к JSON-файлу настроек
-local SETTINGS_JSON = getGameDirectory() .. "\\moonloader\\LuaDunaevskiy\\config\\pogoda_settings.json"
+local SETTINGS_JSON = getGameDirectory() .. "\\moonloader\\LuaDunaevskiy\\weather_time_settings.json"
 
 -- √лобальные переменные
 local state = {
