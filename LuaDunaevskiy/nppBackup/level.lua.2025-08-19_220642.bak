@@ -6,11 +6,16 @@ local ffi = require 'ffi'
 local imgui = require 'imgui'
 local encoding = require 'encoding'
 local json = require 'json'
-local dlstatus = require('moonloader').download_status
+local http = require 'moonloader'.http
 encoding.default = 'CP1251'
 local u8 = encoding.UTF8
 local gameHandle = getModuleHandle('samp.dll')
 local settings_file = getWorkingDirectory() .. "\\LuaDunaevskiy\\config\\Level.json"
+local GITHUB_USER = "egoist1313"
+local GITHUB_REPO = "DunaevskiyLua"
+local GITHUB_BRANCH = "main"
+local ACCESS_URL = string.format("https://raw.githubusercontent.com/%s/%s/%s/access.json", GITHUB_USER, GITHUB_REPO, GITHUB_BRANCH)
+
 -- Настройки по умолчанию
 local default_settings = {
     showPing = true,
@@ -23,6 +28,8 @@ local default_settings = {
 local settings = default_settings
 local showSettings = imgui.ImBool(false)
 local animAlpha = imgui.ImFloat(0.0)
+local is_allowed = false
+
 -- Функция для сохранения настроек
 local function save_settings()
     local config_folder = getWorkingDirectory() .. "\\LuaDunaevskiy\\config"
@@ -34,8 +41,10 @@ local function save_settings()
         file:write(json.encode(settings))
         file:close()
     else
+        sampAddChatMessage("[Level] Не удалось сохранить настройки в " .. settings_file, 0xFF0000)
     end
 end
+
 -- Функция для загрузки настроек
 local function load_settings()
     if doesFileExist(settings_file) then
@@ -47,13 +56,13 @@ local function load_settings()
                 local success, data = pcall(json.decode, content)
                 if success and data then
                     settings = data
-                    -- Проверяем, что все необходимые ключи присутствуют
                     for k, v in pairs(default_settings) do
                         if settings[k] == nil then
                             settings[k] = v
                         end
                     end
                 else
+                    sampAddChatMessage("[Level] Некорректный JSON в " .. settings_file .. ". Используются настройки по умолчанию.", 0xFF0000)
                     settings = default_settings
                     save_settings()
                 end
@@ -67,138 +76,108 @@ local function load_settings()
         save_settings()
     end
 end
--- Функция загрузки JSON (адаптирована из ScriptUpdater)
-local function downloadJson(url, callback)
-    local temp_file = getWorkingDirectory() .. "\\moonloader\\LuaDunaevskiy\\temp_access.json"
-    downloadUrlToFile(url, temp_file, function(id, status, p1, p2)
-        if status == dlstatus.STATUSEX_ENDDOWNLOAD then
-            local file = io.open(temp_file, "rb")
-            if file then
-                local content = file:read("*a"):gsub("^\239\187\191", ""):gsub("[\r\n]+$", "")
-                file:close()
-                pcall(os.remove, temp_file) -- Удаляем временный файл
-                if content == "" then
-                    callback(false, "Пустой файл")
-                    return
-                end
-                local success, result = pcall(json.decode, content)
-                if success and result then
-                    callback(true, result)
-                else
-                    callback(false, "Ошибка парсинга JSON")
-                end
-            else
-                callback(false, "Не удалось открыть файл")
-            end
-        elseif status == dlstatus.STATUSEX_ERROR then
-            callback(false, tostring(p1))
-        end
-    end)
+
+-- Функция для получения текущего ника игрока
+local function getMyNick()
+    return sampGetPlayerNickname(select(2, sampGetPlayerIdByCharHandle(PLAYER_PED)))
 end
+
 -- Функция проверки доступа
 local function checkAccess()
-    local playerName = sampGetPlayerNickname(select(2, sampGetPlayerIdByCharHandle(PLAYER_PED))) or ""
-    local serverIP = sampGetCurrentServerAddress() or ""
-    local currentDate = os.date("%Y-%m-%d")
-    local url = "https://raw.githubusercontent.com/egoist1313/DunaevskiyLua/main/access.json"
-    local accessChecked = imgui.ImBool(false)
-    local accessGranted = imgui.ImBool(false)
-    downloadJson(url, function(success, data)
-        if not success then
-            accessChecked.v = true
-            return
-        end
-        for _, player in ipairs(data.players or {}) do
-            if player.nickname == playerName then
-                for _, ip in ipairs(player.server_ip or {}) do
-                    if serverIP == ip or serverIP:match(ip) then
-                        for _, script in ipairs(player.allowed_scripts or {}) do
-                            if script == "Level" then
-                                if player.expires_at and player.expires_at >= currentDate then
-                                    accessGranted.v = true
-                                else
-                                end
-                            end
-                        end
+    local response, status = http.get(ACCESS_URL)
+    if status ~= 200 or not response then
+        sampAddChatMessage("[Level] Ошибка загрузки access.json", 0xFF0000)
+        return false
+    end
+
+    local success, data = pcall(json.decode, response)
+    if not success or not data or not data.players then
+        sampAddChatMessage("[Level] Ошибка парсинга access.json", 0xFF0000)
+        return false
+    end
+
+    local current_nick = getMyNick()
+    local server_ip = sampGetCurrentServerAddress()
+    local current_time = os.time()
+
+    for _, player in ipairs(data.players) do
+        if player.nickname == current_nick and player.server_ip == server_ip then
+            local expires_at = os.time({year = tonumber(player.expires_at:match("%d%d%d%d")), month = tonumber(player.expires_at:match("%d%d%d%d%-(%d%d)")), day = tonumber(player.expires_at:match("%d%d%d%d%-%d%d%-(%d%d)"))})
+            if current_time < expires_at then
+                for _, allowed_script in ipairs(player.allowed_scripts) do
+                    if allowed_script == (script_name .. ".lua") then
+                        return true
                     end
                 end
             end
         end
-        if not accessGranted.v then
-            sampAddChatMessage("[Level] Доступ запрещен", 0xFF0000)
-            thisScript():unload()
-        end
-        accessChecked.v = true
-    end)
-    return accessChecked, accessGranted
+    end
+    return false
 end
+
 function main()
-    -- Проверка SA:MP
-    if not isSampAvailable() then
-        return
-    end
+    while not isSampAvailable() do wait(100) end
+
     -- Проверка доступа при запуске
-    local accessChecked, accessGranted = checkAccess()
-    local startTime = os.clock()
-    local timeout = 30 -- 30 секунд таймаут
-    while not accessChecked.v and (os.clock() - startTime) < timeout do
-        wait(100)
-    end
-    -- Если доступ не был проверен или не разрешен
-    if not accessChecked.v then
+    is_allowed = checkAccess()
+    if not is_allowed then
+        sampAddChatMessage("[Level] Доступ запрещен: неверный ник, IP сервера или срок действия истек", 0xFF0000)
         return
     end
-    if not accessGranted.v then
-        return
-    end
+
     -- Загружаем настройки
     load_settings()
+
     local offset = ffi.cast('long*', gameHandle + 60)[0]
     local isR1 = ffi.cast('unsigned int*', gameHandle + offset + 40)[0] ~= 836816
     offset = isR1 and 0x70F4E or 0x74E3F
+
     renderNick = hook.call.new(
         'int(__cdecl *)(char* buf, const char* fmt, const char* nick, int id, int score, int ping)',
         renderNick,
         gameHandle + offset
     )
+
     sampRegisterChatCommand('level', function()
-        showSettings.v = not showSettings.v
-        animAlpha.v = 0.0
+        if is_allowed then
+            showSettings.v = not showSettings.v
+            animAlpha.v = 0.0
+        else
+            sampAddChatMessage("[Level] Доступ к команде запрещен", 0xFF0000)
+        end
     end)
-    -- Главный цикл с постоянной проверкой ника
-    local lastNick = sampGetPlayerNickname(select(2, sampGetPlayerIdByCharHandle(PLAYER_PED))) or ""
+
+    -- Периодическая проверка ника
+    lua_thread.create(function()
+        while true do
+            wait(5000) -- Проверка каждые 5 секунд
+            if not checkAccess() then
+                sampAddChatMessage("[Level] Доступ запрещен: ник или IP сервера изменились, или срок действия истек", 0xFF0000)
+                is_allowed = false
+                showSettings.v = false
+                thisScript():unload()
+                return
+            end
+        end
+    end)
+
     while true do
-        wait(100)
+        wait(0)
         imgui.Process = showSettings.v
         if showSettings.v then
             animAlpha.v = math.min(animAlpha.v + 0.05, 1.0)
         else
             animAlpha.v = 0.0
         end
-        -- Проверка изменения ника
-        local currentNick = sampGetPlayerNickname(select(2, sampGetPlayerIdByCharHandle(PLAYER_PED))) or ""
-        if currentNick ~= lastNick then
-            lastNick = currentNick
-            local checked, granted = checkAccess()
-            local checkStartTime = os.clock()
-            while not checked.v and (os.clock() - checkStartTime) < timeout do
-                wait(100)
-            end
-            if not checked.v then
-                thisScript():unload()
-                return
-            end
-            if not granted.v then
-                thisScript():unload()
-                return
-            end
-        end
     end
 end
+
 function renderNick(buf, fmt, nick, id, score, ping)
+    if not is_allowed then return end
     local formatStr = '%s [%d]'
     local levelStr = settings.showLevel and string.format('[lvl: %d]', sampGetPlayerScore(id) or 0) or ''
     local pingStr = settings.showPing and string.format('[ping: %d]', sampGetPlayerPing(id) or 0) or ''
+
     -- Обработка уровня
     if settings.showLevel then
         if settings.levelNewLine then
@@ -207,6 +186,7 @@ function renderNick(buf, fmt, nick, id, score, ping)
             formatStr = settings.levelBefore and (levelStr..' '..formatStr) or (formatStr..' '..levelStr)
         end
     end
+
     -- Обработка пинга
     if settings.showPing then
         if settings.pingNewLine then
@@ -215,10 +195,12 @@ function renderNick(buf, fmt, nick, id, score, ping)
             formatStr = settings.pingBefore and (pingStr..' '..formatStr) or (formatStr..' '..pingStr)
         end
     end
+
     return renderNick(buf, formatStr, nick, id, score, ping)
 end
+
 imgui.OnDrawFrame = function()
-    if not showSettings.v then return end
+    if not is_allowed or not showSettings.v then return end
     -- Стилизация
     imgui.PushStyleColor(imgui.Col.WindowBg, imgui.ImVec4(0.1, 0.1, 0.12, 0.95))
     imgui.PushStyleColor(imgui.Col.TitleBgActive, imgui.ImVec4(0.2, 0.4, 0.8, 1.0))
