@@ -2,7 +2,7 @@
   "players": [
     {
       "nickname": "Alexandr_Dunaevskiy",
-      "server_ip": ["5.252.33.202:7777", "legacy.samp-rp.ru:7777"],
+      "server_ip": ["5.252.33.202", "legacy.samp-rp.ru"],
       "allowed_scripts": ["Level", "logChat"],
       "expires_at": "2026-09-01"
     },
