@@ -11,9 +11,12 @@ local u8 = encoding.UTF8
 local gameHandle = getModuleHandle('samp.dll')
 local settings_file = getWorkingDirectory() .. "\\LuaDunaevskiy\\config\\Level.json"
 
+-- Вторая половина ключа (жестко закодирована)
+local LEVEL_KEY_PART = "987654321"
+
 -- Функция проверки ключа
 local function check_key()
-    local key_path = getWorkingDirectory() .. "\\moonloader\\LuaDunaevskiy\\updater_key.json"
+    local key_path = getWorkingDirectory() .. "\\moonloader\\LuaDunaevskiy\\updater_key.txt"
     if not doesFileExist(key_path) then
         sampAddChatMessage("[Level] Ошибка: Ключ от updater.lua не найден", 0xFF0000)
         return false
@@ -23,21 +26,15 @@ local function check_key()
         sampAddChatMessage("[Level] Ошибка: Не удалось прочитать ключ от updater.lua", 0xFF0000)
         return false
     end
-    local content = file:read("*a"):gsub("^\239\187\191", "")
+    local updater_key_part = file:read("*a")
     file:close()
-    local success, key_data = pcall(json.decode, content)
-    if not success or not key_data then
-        sampAddChatMessage("[Level] Ошибка: Неверный формат ключа", 0xFF0000)
+    -- Простая проверка ключа (например, объединение и сравнение длины)
+    local full_key = updater_key_part .. LEVEL_KEY_PART
+    if #full_key < 10 then -- Пример проверки: ключ должен быть достаточно длинным
+        sampAddChatMessage("[Level] Ошибка: Неверный ключ от updater.lua", 0xFF0000)
         return false
     end
-    -- Проверяем, есть ли Level.lua в списке разрешённых скриптов
-    for _, script_name in ipairs(key_data.scripts or {}) do
-        if script_name == "Level.lua" then
-            return true
-        end
-    end
-    sampAddChatMessage("[Level] Ошибка: Доступ к скрипту Level.lua не разрешён", 0xFF0000)
-    return false
+    return true
 end
 
 -- Настройки по умолчанию

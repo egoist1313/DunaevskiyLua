@@ -1,3 +1,4 @@
+
 local script_name = 'Level'
 local script_version = '2.0.0'
 script_properties("work-in-pause")
@@ -6,38 +7,30 @@ local ffi = require 'ffi'
 local imgui = require 'imgui'
 local encoding = require 'encoding'
 local json = require 'json'
+local md5 = require 'md5'
+
 encoding.default = 'CP1251'
 local u8 = encoding.UTF8
 local gameHandle = getModuleHandle('samp.dll')
 local settings_file = getWorkingDirectory() .. "\\LuaDunaevskiy\\config\\Level.json"
 
--- Функция проверки ключа
-local function check_key()
-    local key_path = getWorkingDirectory() .. "\\moonloader\\LuaDunaevskiy\\updater_key.json"
-    if not doesFileExist(key_path) then
-        sampAddChatMessage("[Level] Ошибка: Ключ от updater.lua не найден", 0xFF0000)
-        return false
-    end
-    local file = io.open(key_path, "r")
-    if not file then
-        sampAddChatMessage("[Level] Ошибка: Не удалось прочитать ключ от updater.lua", 0xFF0000)
-        return false
-    end
-    local content = file:read("*a"):gsub("^\239\187\191", "")
-    file:close()
-    local success, key_data = pcall(json.decode, content)
-    if not success or not key_data then
-        sampAddChatMessage("[Level] Ошибка: Неверный формат ключа", 0xFF0000)
-        return false
-    end
-    -- Проверяем, есть ли Level.lua в списке разрешённых скриптов
-    for _, script_name in ipairs(key_data.scripts or {}) do
-        if script_name == "Level.lua" then
+-- Проверка доступа
+local function checkAccess()
+    local required_hash = _G["SCRIPT_ACCESS_LEVEL.LUA"]
+    local expires_at = _G["SCRIPT_EXPIRES_LEVEL.LUA"]
+    if required_hash and expires_at then
+        local playerName = sampGetPlayerNickname(select(2, sampGetPlayerIdByCharHandle(PLAYER_PED))) or ""
+        local computed_hash = md5(playerName .. "Level.lua" .. expires_at)
+        if computed_hash == required_hash then
             return true
+        else
+            sampAddChatMessage("[Level] Доступ запрещен: неверный хеш", 0xFF0000)
+            return false
         end
+    else
+        sampAddChatMessage("[Level] Доступ запрещен: отсутствует информация о доступе", 0xFF0000)
+        return false
     end
-    sampAddChatMessage("[Level] Ошибка: Доступ к скрипту Level.lua не разрешён", 0xFF0000)
-    return false
 end
 
 -- Настройки по умолчанию
@@ -101,13 +94,9 @@ local function load_settings()
 end
 
 function main()
-    -- Проверка зависимости от updater.lua
-    if not script.find("updater.lua") then
-        sampAddChatMessage("[Level] Ошибка: Скрипт 'updater.lua' не загружен", 0xFF0000)
-        return
-    end
-    -- Проверка ключа
-    if not check_key() then
+    -- Проверка доступа
+    if not checkAccess() then
+        sampAddChatMessage("[Level] Скрипт не запущен: доступ запрещен", 0xFF0000)
         return
     end
 
@@ -183,14 +172,17 @@ imgui.OnDrawFrame = function()
     imgui.PushStyleVar(imgui.StyleVar.ItemSpacing, imgui.ImVec2(12, 10))
     imgui.PushStyleVar(imgui.StyleVar.WindowPadding, imgui.ImVec2(15, 15))
     imgui.PushStyleVar(imgui.StyleVar.Alpha, animAlpha.v)
+    
     local windowSize = imgui.ImVec2(400, 390)
     local displaySize = imgui.GetIO().DisplaySize
     imgui.SetNextWindowSize(windowSize, imgui.Cond.FirstUseEver)
     imgui.SetNextWindowPos(imgui.ImVec2(displaySize.x * 0.5, displaySize.y * 0.5), imgui.Cond.FirstUseEver, imgui.ImVec2(0.5, 0.5))
+    
     imgui.Begin(u8'Настройки Level', showSettings, imgui.WindowFlags.NoResize + imgui.WindowFlags.NoCollapse + imgui.WindowFlags.NoScrollbar)
     imgui.TextColored(imgui.ImVec4(0.4, 0.7, 1.0, 1.0), u8'Настройки отображения')
     imgui.Separator()
     imgui.Spacing()
+    
     imgui.Text(u8'Уровень игрока:')
     if imgui.Checkbox(u8'Показывать уровень', imgui.ImBool(settings.showLevel)) then
         settings.showLevel = not settings.showLevel
@@ -209,6 +201,7 @@ imgui.OnDrawFrame = function()
     imgui.Spacing()
     imgui.Separator()
     imgui.Spacing()
+    
     imgui.Text(u8'Пинг игрока:')
     if imgui.Checkbox(u8'Показывать пинг', imgui.ImBool(settings.showPing)) then
         settings.showPing = not settings.showPing
