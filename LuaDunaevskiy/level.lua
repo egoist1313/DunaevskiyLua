@@ -1,254 +1,57 @@
 local script_name = 'Level'
-local script_version = '2.0.0'
-script_properties("work-in-pause")
+local script_version = '07/03/2025'
 local hook = require 'hooks'
-local ffi = require 'ffi'
-local imgui = require 'imgui'
-local encoding = require 'encoding'
-local json = require 'json'
-encoding.default = 'CP1251'
-local u8 = encoding.UTF8
+local ffi = require('ffi')
 local gameHandle = getModuleHandle('samp.dll')
-local settings_file = getWorkingDirectory() .. "\\LuaDunaevskiy\\config\\Level.json"
 
--- Функция логирования для Level
-local function logToFile(message)
-    local log_path = getWorkingDirectory() .. "\\moonloader\\LuaDunaevskiy\\level.log"
-    local file = io.open(log_path, "a")
-    if file then
-        file:write(os.date("[%Y-%m-%d %H:%M:%S] ") .. message .. "\n")
-        file:close()
-    end
-end
-
--- Функция проверки ключа
-local function check_key()
-    local key_path = getWorkingDirectory() .. "\\moonloader\\LuaDunaevskiy\\updater_key.json"
-    if not doesFileExist(key_path) then
-        sampAddChatMessage("[Level] Ошибка: Ключ от updater.lua не найден", 0xFF0000)
-        logToFile("Ошибка: Ключ от updater.lua не найден")
-        return false
-    end
-    local file = io.open(key_path, "r")
-    if not file then
-        sampAddChatMessage("[Level] Ошибка: Не удалось прочитать ключ от updater.lua", 0xFF0000)
-        logToFile("Ошибка: Не удалось прочитать ключ от updater.lua")
-        return false
-    end
-    local content = file:read("*a"):gsub("^\239\187\191", "")
-    file:close()
-    local success, key_data = pcall(json.decode, content)
-    if not success or not key_data then
-        sampAddChatMessage("[Level] Ошибка: Неверный формат ключа", 0xFF0000)
-        logToFile("Ошибка: Неверный формат ключа")
-        return false
-    end
-    -- Проверяем, есть ли Level.lua в списке разрешённых скриптов
-    for _, script_name in ipairs(key_data.scripts or {}) do
-        if script_name == "Level.lua" then
-            logToFile("Доступ к Level.lua разрешён")
-            return true
-        end
-    end
-    sampAddChatMessage("[Level] Ошибка: Доступ к скрипту Level.lua не разрешён", 0xFF0000)
-    logToFile("Ошибка: Доступ к Level.lua не разрешён")
-    return false
-end
-
--- Настройки по умолчанию
-local default_settings = {
-    showPing = true,
-    showLevel = true,
-    pingNewLine = false,
-    levelNewLine = false,
-    pingBefore = false,
-    levelBefore = false
-}
-local settings = default_settings
-local showSettings = imgui.ImBool(false)
-local animAlpha = imgui.ImFloat(0.0)
-
--- Функция для сохранения настроек
-local function save_settings()
-    local config_folder = getWorkingDirectory() .. "\\LuaDunaevskiy\\config"
-    if not doesDirectoryExist(config_folder) then
-        createDirectory(config_folder)
-    end
-    local file = io.open(settings_file, "w")
-    if file then
-        file:write(json.encode(settings))
-        file:close()
-        logToFile("Настройки сохранены в " .. settings_file)
+function getSampVersion()
+    if gameHandle == 0 then
+        sampAddChatMessage('{FF0000}Не удалось определить версию SA:MP', -1)
+        print('{FF0000}Не удалось определить версию SA:MP')
+        thisScript():unload()
+        return nil
     else
-        sampAddChatMessage("[Level] Не удалось сохранить настройки в " .. settings_file, 0xFF0000)
-        logToFile("Не удалось сохранить настройки в " .. settings_file)
-    end
-end
-
--- Функция для загрузки настроек
-local function load_settings()
-    if doesFileExist(settings_file) then
-        local file = io.open(settings_file, "r")
-        if file then
-            local content = file:read("*a")
-            file:close()
-            if content and content:match("%S") then
-                local success, data = pcall(json.decode, content)
-                if success and data then
-                    settings = data
-                    for k, v in pairs(default_settings) do
-                        if settings[k] == nil then
-                            settings[k] = v
-                        end
-                    end
-                    logToFile("Настройки загружены из " .. settings_file)
-                else
-                    sampAddChatMessage("[Level] Некорректный JSON в " .. settings_file .. ". Используются настройки по умолчанию.", 0xFF0000)
-                    logToFile("Некорректный JSON в " .. settings_file)
-                    settings = default_settings
-                    save_settings()
-                end
-            else
-                save_settings()
-            end
+        local cast = ffi.cast('long*', gameHandle + 60)[0]
+        local isR1 = ffi.cast('unsigned int*', gameHandle + cast + 40)[0] ~= 836816
+        if isR1 then
+            print("Detected SA:MP R1 (0.3.7)")
+            return 'R1'
         else
-            save_settings()
+            print("Detected SA:MP R3 (0.3.DL)")
+            return 'R3'
         end
-    else
-        save_settings()
     end
 end
 
 function main()
-    -- Проверка зависимости от updater.lua
-    if not script.find("updater.lua") then
-        sampAddChatMessage("[Level] Ошибка: Скрипт 'updater.lua' не загружен", 0xFF0000)
-        logToFile("Ошибка: Скрипт 'updater.lua' не загружен")
-        return
-    end
-    -- Проверка ключа
-    if not check_key() then
-        return
+    local base = gameHandle
+    local offset
+    local sampVersion = getSampVersion()
+
+    -- Если версия не определена (например, из-за выгрузки), выходим
+    if not sampVersion then return end
+
+    -- Устанавливаем offset в зависимости от версии
+    if sampVersion == "R1" then
+        offset = 0x70F4E
+        sampAddChatMessage("{FFFFFF}SAMP Version: {00FF00}R1 ", -1)
+    elseif sampVersion == "R3" then
+        offset = 0x74E3F
+        sampAddChatMessage("{FFFFFF}SAMP Version: {00FF00}R3 ", -1)
     end
 
-    while not isSampAvailable() do wait(100) end
-    
-    load_settings()
-    
-    local offset = ffi.cast('long*', gameHandle + 60)[0]
-    local isR1 = ffi.cast('unsigned int*', gameHandle + offset + 40)[0] ~= 836816
-    offset = isR1 and 0x70F4E or 0x74E3F
-    
+    -- Настраиваем хук для renderNick
     renderNick = hook.call.new(
         'int(__cdecl *)(char* buf, const char* fmt, const char* nick, int id, int score, int ping)',
         renderNick,
-        gameHandle + offset
+        base + offset
     )
     
-    sampRegisterChatCommand('level', function()
-        showSettings.v = not showSettings.v
-        animAlpha.v = 0.0
-        logToFile("Команда /level выполнена, меню настроек: " .. tostring(showSettings.v))
-    end)
-    
-    while true do
-        wait(0)
-        imgui.Process = showSettings.v
-        if showSettings.v then
-            animAlpha.v = math.min(animAlpha.v + 0.05, 1.0)
-        else
-            animAlpha.v = 0.0
-        end
-    end
+    wait(-1)
 end
 
-function renderNick(buf, fmt, nick, id, score, ping)
-    local formatStr = '%s [%d]'
-    local levelStr = settings.showLevel and string.format('[lvl: %d]', sampGetPlayerScore(id) or 0) or ''
-    local pingStr = settings.showPing and string.format('[ping: %d]', sampGetPlayerPing(id) or 0) or ''
-    
-    if settings.showLevel then
-        if settings.levelNewLine then
-            formatStr = settings.levelBefore and (levelStr..'\n'..formatStr) or (formatStr..'\n'..levelStr)
-        else
-            formatStr = settings.levelBefore and (levelStr..' '..formatStr) or (formatStr..' '..levelStr)
-        end
-    end
-    
-    if settings.showPing then
-        if settings.pingNewLine then
-            formatStr = settings.pingBefore and (pingStr..'\n'..formatStr) or (formatStr..'\n'..pingStr)
-        else
-            formatStr = settings.pingBefore and (pingStr..' '..formatStr) or (formatStr..' '..pingStr)
-        end
-    end
-    
-    return renderNick(buf, formatStr, nick, id, score, ping)
-end
-
-imgui.OnDrawFrame = function()
-    if not showSettings.v then return end
-    imgui.PushStyleColor(imgui.Col.WindowBg, imgui.ImVec4(0.1, 0.1, 0.12, 0.95))
-    imgui.PushStyleColor(imgui.Col.TitleBgActive, imgui.ImVec4(0.2, 0.4, 0.8, 1.0))
-    imgui.PushStyleColor(imgui.Col.TitleBg, imgui.ImVec4(0.15, 0.15, 0.2, 1.0))
-    imgui.PushStyleColor(imgui.Col.FrameBg, imgui.ImVec4(0.2, 0.2, 0.25, 0.8))
-    imgui.PushStyleColor(imgui.Col.FrameBgHovered, imgui.ImVec4(0.3, 0.3, 0.35, 0.9))
-    imgui.PushStyleColor(imgui.Col.FrameBgActive, imgui.ImVec4(0.4, 0.4, 0.45, 0.9))
-    imgui.PushStyleColor(imgui.Col.CheckMark, imgui.ImVec4(0.4, 0.6, 1.0, 1.0))
-    imgui.PushStyleColor(imgui.Col.Text, imgui.ImVec4(0.9, 0.9, 0.9, 1.0))
-    imgui.PushStyleColor(imgui.Col.Button, imgui.ImVec4(0.2, 0.4, 0.8, 0.7))
-    imgui.PushStyleColor(imgui.Col.ButtonHovered, imgui.ImVec4(0.3, 0.5, 0.9, 0.9))
-    imgui.PushStyleColor(imgui.Col.ButtonActive, imgui.ImVec4(0.4, 0.6, 1.0, 1.0))
-    imgui.PushStyleVar(imgui.StyleVar.WindowRounding, 8.0)
-    imgui.PushStyleVar(imgui.StyleVar.FrameRounding, 5.0)
-    imgui.PushStyleVar(imgui.StyleVar.ItemSpacing, imgui.ImVec2(12, 10))
-    imgui.PushStyleVar(imgui.StyleVar.WindowPadding, imgui.ImVec2(15, 15))
-    imgui.PushStyleVar(imgui.StyleVar.Alpha, animAlpha.v)
-    local windowSize = imgui.ImVec2(400, 390)
-    local displaySize = imgui.GetIO().DisplaySize
-    imgui.SetNextWindowSize(windowSize, imgui.Cond.FirstUseEver)
-    imgui.SetNextWindowPos(imgui.ImVec2(displaySize.x * 0.5, displaySize.y * 0.5), imgui.Cond.FirstUseEver, imgui.ImVec2(0.5, 0.5))
-    imgui.Begin(u8'Настройки Level', showSettings, imgui.WindowFlags.NoResize + imgui.WindowFlags.NoCollapse + imgui.WindowFlags.NoScrollbar)
-    imgui.TextColored(imgui.ImVec4(0.4, 0.7, 1.0, 1.0), u8'Настройки отображения')
-    imgui.Separator()
-    imgui.Spacing()
-    imgui.Text(u8'Уровень игрока:')
-    if imgui.Checkbox(u8'Показывать уровень', imgui.ImBool(settings.showLevel)) then
-        settings.showLevel = not settings.showLevel
-        save_settings()
-    end
-    imgui.Indent(20)
-    if imgui.Checkbox(u8'Перед ником', imgui.ImBool(settings.levelBefore)) then
-        settings.levelBefore = not settings.levelBefore
-        save_settings()
-    end
-    if imgui.Checkbox(u8'На новой строке', imgui.ImBool(settings.levelNewLine)) then
-        settings.levelNewLine = not settings.levelNewLine
-        save_settings()
-    end
-    imgui.Unindent(20)
-    imgui.Spacing()
-    imgui.Separator()
-    imgui.Spacing()
-    imgui.Text(u8'Пинг игрока:')
-    if imgui.Checkbox(u8'Показывать пинг', imgui.ImBool(settings.showPing)) then
-        settings.showPing = not settings.showPing
-        save_settings()
-    end
-    imgui.Indent(20)
-    if imgui.Checkbox(u8'Перед ником##ping', imgui.ImBool(settings.pingBefore)) then
-        settings.pingBefore = not settings.pingBefore
-        save_settings()
-    end
-    if imgui.Checkbox(u8'На новой строке##ping', imgui.ImBool(settings.pingNewLine)) then
-        settings.pingNewLine = not settings.pingNewLine
-        save_settings()
-    end
-    imgui.Unindent(20)
-    imgui.Spacing()
-    imgui.Separator()
-    imgui.TextColored(imgui.ImVec4(0.6, 0.6, 0.6, 1.0), u8'Level v'..script_version..' by '..script_name)
-    imgui.End()
-    imgui.PopStyleVar(5)
-    imgui.PopStyleColor(11)
+function renderNick(buf, fmt, nick, id)
+    local score = sampGetPlayerScore(id) or 0
+    local ping = sampGetPlayerPing(id) or 0
+    return renderNick(buf, '%s [%d] \n {00FF00} [lvl: %d] [ping: %d]', nick, id, score, ping)
 end
