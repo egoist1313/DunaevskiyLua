@@ -1,8 +1,0 @@
-{
-    "scripts": [
-        {"name": "PacketID.lua", "version": "0.1", "path": "LuaDunaevskiy/dev/PacketID.lua", "description": "Ловля пакетов", "command": "/packet"},
-        {"name": "TexDrawINFO.lua", "version": "0.1", "path": "LuaDunaevskiy/dev/TexDrawINFO.lua", "description": "Инфо от текстдравах", "command": "/tdinfo"}
-    ],
-    "allowedIPs": ["5.252.33.202", "legacy.samp-rp.ru"],
-    "allowedPlayer": "Alexandr_Dunaevskiy"
-}
