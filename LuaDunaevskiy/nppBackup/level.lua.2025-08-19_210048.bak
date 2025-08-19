@@ -1,20 +1,17 @@
-local script_name = 'Level'
-local script_version = '2.0.0'
+script_name('Level')
+script_version('2.0.0')
 script_properties("work-in-pause")
 local hook = require 'hooks'
 local ffi = require 'ffi'
 local imgui = require 'imgui'
 local encoding = require 'encoding'
 local json = require 'json'
-local http = require 'moonloader'.http
+local dlstatus = require('moonloader').download_status
 encoding.default = 'CP1251'
 local u8 = encoding.UTF8
 local gameHandle = getModuleHandle('samp.dll')
 local settings_file = getWorkingDirectory() .. "\\LuaDunaevskiy\\config\\Level.json"
-local GITHUB_USER = "egoist1313"
-local GITHUB_REPO = "DunaevskiyLua"
-local GITHUB_BRANCH = "main"
-local ACCESS_URL = string.format("https://raw.githubusercontent.com/%s/%s/%s/access.json", GITHUB_USER, GITHUB_REPO, GITHUB_BRANCH)
+local ACCESS_URL = "https://raw.githubusercontent.com/egoist1313/DunaevskiyLua/main/access.json"
 
 -- Настройки по умолчанию
 local default_settings = {
@@ -28,7 +25,6 @@ local default_settings = {
 local settings = default_settings
 local showSettings = imgui.ImBool(false)
 local animAlpha = imgui.ImFloat(0.0)
-local is_allowed = false
 
 -- Функция для сохранения настроек
 local function save_settings()
@@ -77,51 +73,90 @@ local function load_settings()
     end
 end
 
--- Функция для получения текущего ника игрока
-local function getMyNick()
-    return sampGetPlayerNickname(select(2, sampGetPlayerIdByCharHandle(PLAYER_PED)))
+-- Функция загрузки access.json в память
+local function loadAccessJson(callback)
+    local temp_file = getWorkingDirectory() .. "\\moonloader\\LuaDunaevskiy\\temp_access.json"
+    downloadUrlToFile(ACCESS_URL, temp_file, function(id, status)
+        if status == dlstatus.STATUSEX_ENDDOWNLOAD then
+            local file = io.open(temp_file, "r")
+            if file then
+                local content = file:read("*a"):gsub("^\239\187\191", "") -- Удаляем BOM
+                file:close()
+                os.remove(temp_file) -- Удаляем временный файл
+                local success, data = pcall(json.decode, content)
+                if success and data then
+                    callback(data)
+                else
+                    sampAddChatMessage("[Level] Ошибка декодирования access.json", 0xFF0000)
+                    callback(nil)
+                end
+            else
+                sampAddChatMessage("[Level] Не удалось прочитать access.json", 0xFF0000)
+                callback(nil)
+            end
+        elseif status == dlstatus.STATUSEX_ERROR then
+            sampAddChatMessage("[Level] Ошибка загрузки access.json", 0xFF0000)
+            callback(nil)
+        end
+    end)
 end
 
 -- Функция проверки доступа
 local function checkAccess()
-    local response, status = http.get(ACCESS_URL)
-    if status ~= 200 or not response then
-        sampAddChatMessage("[Level] Ошибка загрузки access.json", 0xFF0000)
-        return false
-    end
+    local playerName = sampGetPlayerNickname(select(2, sampGetPlayerIdByCharHandle(PLAYER_PED))) or ""
+    local serverIP = sampGetCurrentServerAddress()
+    local currentDate = os.date("%Y-%m-%d")
 
-    local success, data = pcall(json.decode, response)
-    if not success or not data or not data.players then
-        sampAddChatMessage("[Level] Ошибка парсинга access.json", 0xFF0000)
-        return false
-    end
-
-    local current_nick = getMyNick()
-    local server_ip = sampGetCurrentServerAddress()
-    local current_time = os.time()
-
-    for _, player in ipairs(data.players) do
-        if player.nickname == current_nick and player.server_ip == server_ip then
-            local expires_at = os.time({year = tonumber(player.expires_at:match("%d%d%d%d")), month = tonumber(player.expires_at:match("%d%d%d%d%-(%d%d)")), day = tonumber(player.expires_at:match("%d%d%d%d%-%d%d%-(%d%d)"))})
-            if current_time < expires_at then
-                for _, allowed_script in ipairs(player.allowed_scripts) do
-                    if allowed_script == (script_name .. ".lua") then
-                        return true
+    local function validateAccess(data)
+        if not data or not data.players then
+            return false
+        end
+        for _, player in ipairs(data.players) do
+            if player.nickname == playerName and player.server_ip == serverIP then
+                if player.expires_at >= currentDate then
+                    for _, script in ipairs(player.allowed_scripts) do
+                        if script == "Level.lua" then
+                            return true
+                        end
                     end
                 end
             end
         end
+        return false
     end
-    return false
+
+    local accessGranted = false
+    local downloadDone = false
+
+    loadAccessJson(function(data)
+        accessGranted = validateAccess(data)
+        downloadDone = true
+    end)
+
+    -- Ожидание завершения загрузки (таймаут 10 секунд)
+    local startTime = os.clock()
+    while not downloadDone and (os.clock() - startTime) * 1000 < 10000 do
+        wait(100)
+    end
+
+    if not downloadDone then
+        sampAddChatMessage("[Level] Таймаут загрузки access.json", 0xFF0000)
+        return false
+    end
+
+    if not accessGranted then
+        sampAddChatMessage("[Level] Доступ запрещен или срок действия истек", 0xFF0000)
+    end
+
+    return accessGranted
 end
 
 function main()
     while not isSampAvailable() do wait(100) end
 
-    -- Проверка доступа при запуске
-    is_allowed = checkAccess()
-    if not is_allowed then
-        sampAddChatMessage("[Level] Доступ запрещен: неверный ник, IP сервера или срок действия истек", 0xFF0000)
+    -- Проверка доступа при старте
+    if not checkAccess() then
+        thisScript():unload()
         return
     end
 
@@ -139,30 +174,23 @@ function main()
     )
 
     sampRegisterChatCommand('level', function()
-        if is_allowed then
-            showSettings.v = not showSettings.v
-            animAlpha.v = 0.0
-        else
-            sampAddChatMessage("[Level] Доступ к команде запрещен", 0xFF0000)
-        end
+        showSettings.v = not showSettings.v
+        animAlpha.v = 0.0
     end)
 
-    -- Периодическая проверка ника
-    lua_thread.create(function()
-        while true do
-            wait(5000) -- Проверка каждые 5 секунд
+    -- Периодическая проверка ника и доступа
+    local lastNick = sampGetPlayerNickname(select(2, sampGetPlayerIdByCharHandle(PLAYER_PED))) or ""
+    while true do
+        wait(1000) -- Проверка каждую секунду
+        local currentNick = sampGetPlayerNickname(select(2, sampGetPlayerIdByCharHandle(PLAYER_PED))) or ""
+        if currentNick ~= lastNick then
             if not checkAccess() then
-                sampAddChatMessage("[Level] Доступ запрещен: ник или IP сервера изменились, или срок действия истек", 0xFF0000)
-                is_allowed = false
-                showSettings.v = false
+                sampAddChatMessage("[Level] Ник изменился, доступ запрещен", 0xFF0000)
                 thisScript():unload()
                 return
             end
+            lastNick = currentNick
         end
-    end)
-
-    while true do
-        wait(0)
         imgui.Process = showSettings.v
         if showSettings.v then
             animAlpha.v = math.min(animAlpha.v + 0.05, 1.0)
@@ -173,7 +201,6 @@ function main()
 end
 
 function renderNick(buf, fmt, nick, id, score, ping)
-    if not is_allowed then return end
     local formatStr = '%s [%d]'
     local levelStr = settings.showLevel and string.format('[lvl: %d]', sampGetPlayerScore(id) or 0) or ''
     local pingStr = settings.showPing and string.format('[ping: %d]', sampGetPlayerPing(id) or 0) or ''
@@ -200,7 +227,7 @@ function renderNick(buf, fmt, nick, id, score, ping)
 end
 
 imgui.OnDrawFrame = function()
-    if not is_allowed or not showSettings.v then return end
+    if not showSettings.v then return end
     -- Стилизация
     imgui.PushStyleColor(imgui.Col.WindowBg, imgui.ImVec4(0.1, 0.1, 0.12, 0.95))
     imgui.PushStyleColor(imgui.Col.TitleBgActive, imgui.ImVec4(0.2, 0.4, 0.8, 1.0))
