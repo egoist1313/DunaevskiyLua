@@ -2,73 +2,25 @@ local script_author = 'Cosmo mod AlexSwift'
 local script_name = 'Speedometer X'
 local script_version = '2.0.0'
 script_properties("work-in-pause")
-
 local ffi = require "ffi"
 local imgui = require "mimgui"
 local memory = require "memory"
-local json = require "dkjson"
+local ini = require "inicfg"
 require "samp.events"
 
--- Проверка и создание папки конфигурации
-local function ensureConfigDirectory()
-    local path = getWorkingDirectory() .. "\\LuaDunaevskiy\\config"
-    if not doesDirectoryExist(path) then
-        createDirectory(path)
-    end
-end
-ensureConfigDirectory()
-
--- Путь к файлу конфигурации
-local configPath = getWorkingDirectory() .. "\\LuaDunaevskiy\\config\\" .. thisScript().name .. ".json"
-
--- Функция для загрузки конфигурации
-local function loadConfig()
-    local defaultConfig = {
-        main = {
-            state = true,
-            multiplier = 2.0,
-            max_fuel = 300
-        },
-        pos_offset = {
-            x = 280,
-            y = 20
-        }
+local cfg = ini.load({
+    main = {
+        state = true,
+        multiplier = 2.0,
+        max_fuel = 300
+    },
+    pos_offset = {
+        x = 280,
+        y = 20
     }
-    if doesFileExist(configPath) then
-        local file = io.open(configPath, "r")
-        if file then
-            local content = file:read("*all")
-            file:close()
-            local cfg, pos, err = json.decode(content)
-            if err then
-                print("Error decoding JSON: " .. err)
-                return defaultConfig
-            end
-            print("Loaded config: x=" .. cfg.pos_offset.x .. ", y=" .. cfg.pos_offset.y)
-            return cfg
-        end
-    end
-    print("Config file not found, using defaults: " .. configPath)
-    return defaultConfig
-end
+}, "config\\" .. thisScript().name .. ".ini")
 
--- Функция для сохранения конфигурации
-local function saveConfig(cfg)
-    local file = io.open(configPath, "w")
-    if file then
-        local content = json.encode(cfg, { indent = true })
-        file:write(content)
-        file:close()
-        print("Config saved to: " .. configPath)
-    else
-        print("Error: Could not save config to " .. configPath)
-    end
-end
 
--- Загрузка конфигурации
-local cfg = loadConfig()
-
--- Инициализация позиции
 local sW, sH = getScreenResolution()
 local currentPos = imgui.ImVec2(sW - cfg.pos_offset.x, sH - cfg.pos_offset.y)
 
@@ -155,7 +107,7 @@ function main()
     if not isSampLoaded() or not isSampfuncsLoaded() then
         return
     end
-    saveConfig(cfg) -- Сохранение конфигурации при запуске
+    ini.save(cfg, thisScript().name .. ".ini")
     print("Speedometer X запущен!")
     sampRegisterChatCommand("speedometer", cmd_speedometer)
     wait(0)
@@ -166,7 +118,7 @@ function main()
                 local car = storeCarCharIsInNoSave(PLAYER_PED)
                 if doesVehicleExist(car) and getDriverOfCar(car) == PLAYER_PED then
                     vehicle = Vehicle:new(car, cfg.main.multiplier)
-                    while isCharInCar(PLAYER_PED, car) and doesVehicleExist(car) do
+                    while isCharInCar(PLAYER_PED, car) and doesVehicleExist(car) do 
                         wait(0)
                     end
                     vehicle = nil
@@ -184,8 +136,7 @@ function cmd_speedometer(arg)
         sampAddChatMessage("[Speedometer X] Позиция сохранена!", 0xFF00FF00)
         cfg.pos_offset.x = math.floor(sW - currentPos.x)
         cfg.pos_offset.y = math.floor(sH - currentPos.y)
-        saveConfig(cfg) -- Сохранение конфигурации
-        print("Saved position: x=" .. cfg.pos_offset.x .. ", y=" .. cfg.pos_offset.y)
+        ini.save(cfg, thisScript().name .. ".ini")
     end
 end
 
@@ -211,19 +162,19 @@ local main_frame = imgui.OnFrame(
         self.HideCursor = not isDragging
         local DL = imgui.GetForegroundDrawList()
         local pos = imgui.ImVec2(currentPos.x, currentPos.y)
-       
+        
         if isDragging then
             local mousePos = imgui.GetMousePos()
             local speedometerWidth = (strokes:count() - 1) * (3 + 2) + 3
             local speedometerHeight = 100
-           
+            
             if imgui.IsMouseClicked(0) then
                 if mousePos.x >= pos.x and mousePos.x <= pos.x + speedometerWidth and
                    mousePos.y >= pos.y - speedometerHeight and mousePos.y <= pos.y + 20 then
                     dragStartPos = imgui.ImVec2(mousePos.x - pos.x, mousePos.y - pos.y)
                 end
             end
-           
+            
             if imgui.IsMouseDragging(0) and dragStartPos then
                 pos.x = mousePos.x - dragStartPos.x
                 pos.y = mousePos.y - dragStartPos.y
@@ -232,11 +183,11 @@ local main_frame = imgui.OnFrame(
                 currentPos.x = pos.x
                 currentPos.y = pos.y
             end
-           
+            
             if imgui.IsMouseReleased(0) then
                 dragStartPos = nil
             end
-           
+            
             DL:AddRect(
                 imgui.ImVec2(pos.x - 2, pos.y - speedometerHeight - 2),
                 imgui.ImVec2(pos.x + speedometerWidth + 2, pos.y + 22),
@@ -246,7 +197,7 @@ local main_frame = imgui.OnFrame(
                 2
             )
         end
-       
+        
         if vehicle == nil then return end
         local speed = vehicle:GetSpeed()
         local rpm = vehicle:GetRPM()
