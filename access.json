@@ -1,0 +1,30 @@
+{
+  "public_scripts": [
+    "Equest1.lua",
+    "cook.lua",
+    "Speedometer.lua",
+    "HunterMap.lua",
+    "fish.lua",
+    "voskDun.lua"
+  ],
+  "users": [
+    {
+      "nickname": "Alexandr_Dunaevskiy",
+      "server_ip": "5.252.33.202",
+      "allowed_scripts": [
+        "Level.lua",
+        "logChat.lua",
+        "kmenu.lua"
+      ],
+      "expires_at": "2025-09-01"
+    },
+    {
+      "nickname": "TestPlayer",
+      "server_ip": "5.252.33.202",
+      "allowed_scripts": [
+        "Level.lua"
+      ],
+      "expires_at": "2025-09-01"
+    }
+  ]
+}
