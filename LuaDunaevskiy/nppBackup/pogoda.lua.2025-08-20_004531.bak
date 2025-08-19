@@ -127,6 +127,8 @@ function ensureDirectoryExists(path)
         os.execute('mkdir "' .. path .. '" 2>nul')
     end)
     if not success and enableLogging then
+        print("[WeatherTimeControl] Failed to create directory: " .. path .. ": " .. tostring(err))
+        sampAddChatMessage("[WeatherTimeControl] Не удалось создать папку: " .. path, 0xFF0000)
     end
 end
 
@@ -156,10 +158,12 @@ function loadJson(file_path, default_data)
             return result
         else
             if enableLogging then
+                print("[WeatherTimeControl] Failed to decode JSON: " .. file_path .. ": " .. tostring(result))
             end
         end
     else
         if enableLogging then
+            print("[WeatherTimeControl] JSON file not found: " .. file_path)
         end
     end
     return default_data
@@ -188,13 +192,16 @@ function saveJson(file_path, data)
         file:close()
         if success then
             if enableLogging then
+                print("[WeatherTimeControl] Saved settings to JSON: " .. file_path)
             end
         else
             if enableLogging then
+                print("[WeatherTimeControl] Failed to encode JSON: " .. file_path .. ": " .. tostring(err))
             end
         end
     else
         if enableLogging then
+            print("[WeatherTimeControl] Failed to save JSON: " .. file_path)
         end
     end
 end
@@ -236,6 +243,7 @@ end
 function main()
     if not isSampLoaded() or not isSampfuncsLoaded() then
         if enableLogging then
+            print("[WeatherTimeControl] Failed to load: samp or sampfuncs not loaded")
         end
         return
     end
@@ -244,6 +252,7 @@ function main()
     -- Проверка доступности imgui
     if not imgui or not imgui.Begin or not imgui.End or not imgui.ImVec2 then
         if enableLogging then
+            print("[WeatherTimeControl] Failed to load: imgui library is not properly initialized")
         end
         return
     end
@@ -265,6 +274,7 @@ function main()
                 memory.write(0xC81320, state.lockedWeatherId, 1, true)
             end)
             if not success and enableLogging then
+                print("[WeatherTimeControl] Failed to restore weather: " .. tostring(err))
             end
         end
         if state.timeLocked then
@@ -273,6 +283,7 @@ function main()
                 memory.write(0xB70152, state.lockedMinute, 1, true)
             end)
             if not success and enableLogging then
+                print("[WeatherTimeControl] Failed to restore time: " .. tostring(err))
             end
         end
     end
@@ -284,6 +295,8 @@ function main()
     sampRegisterChatCommand("den", function()
         state.isWindowOpen[0] = not state.isWindowOpen[0]
         if enableLogging then
+            sampAddChatMessage("[WeatherTimeControl] Window is now " .. (state.isWindowOpen[0] and "open" or "closed"), 0x00FF00)
+            print("[WeatherTimeControl] Window toggled: " .. (state.isWindowOpen[0] and "open" or "closed"))
         end
     end)
 
@@ -297,6 +310,7 @@ function main()
                 memory.write(0xC81320, state.lockedWeatherId, 1, true)
             end)
             if not success and enableLogging then
+                print("[WeatherTimeControl] Failed to set weather: " .. tostring(err))
             end
         end
         if state.timeLocked then
@@ -305,6 +319,7 @@ function main()
                 memory.write(0xB70152, state.lockedMinute, 1, true)
             end)
             if not success and enableLogging then
+                print("[WeatherTimeControl] Failed to set time: " .. tostring(err))
             end
         end
         -- Сохранение настроек в JSON только при изменении
@@ -318,6 +333,7 @@ end
 imgui.OnFrame(function() return state.isWindowOpen[0] end, function()
     -- Проверка рендеринга
     if enableLogging then
+        print("[WeatherTimeControl] Rendering frame")
     end
 
     -- Настройка шрифта
@@ -328,10 +344,12 @@ imgui.OnFrame(function() return state.isWindowOpen[0] end, function()
                 state.customFont = imgui.dx9.newFont(fontPath, 18.0, imgui.ImFontFlags.None, imgui.ImFontGlyphRanges.Cyrillic)
             else
                 if enableLogging then
+                    print("[WeatherTimeControl] Font not found: " .. fontPath)
                 end
             end
         end)
         if not success and enableLogging then
+            print("[WeatherTimeControl] Failed to load font: " .. tostring(result))
         end
     end
 
@@ -362,8 +380,10 @@ imgui.OnFrame(function() return state.isWindowOpen[0] end, function()
                         end)
                         if success then
                             if enableLogging then
+                                print("[WeatherTimeControl] Set and locked weather to: " .. weather.comment .. " (ID: " .. weather.id .. ")")
                             end
                         elseif enableLogging then
+                            print("[WeatherTimeControl] Failed to set weather: " .. tostring(err))
                         end
                         -- Отметка изменения настроек
                         state.settingsChanged = true
@@ -388,8 +408,10 @@ imgui.OnFrame(function() return state.isWindowOpen[0] end, function()
             end)
             if success then
                 if enableLogging then
+                    print("[WeatherTimeControl] Set and locked hour to: " .. state.lockedHour)
                 end
             elseif enableLogging then
+                print("[WeatherTimeControl] Failed to set hour: " .. tostring(err))
             end
             -- Отметка изменения настроек
             state.settingsChanged = true
@@ -404,8 +426,10 @@ imgui.OnFrame(function() return state.isWindowOpen[0] end, function()
             end)
             if success then
                 if enableLogging then
+                    print("[WeatherTimeControl] Set and locked minute to: " .. state.lockedMinute)
                 end
             elseif enableLogging then
+                print("[WeatherTimeControl] Failed to set minute: " .. tostring(err))
             end
             -- Отметка изменения настроек
             state.settingsChanged = true
@@ -418,11 +442,13 @@ imgui.OnFrame(function() return state.isWindowOpen[0] end, function()
                 state.timeLocked = true
                 state.settingsChanged = true
                 if enableLogging then
+                    print("[WeatherTimeControl] Save on restart enabled: Weather ID " .. state.lockedWeatherId .. ", Time " .. string.format("%02d:%02d", state.lockedHour, state.lockedMinute))
                 end
             else
                 if doesFileExist(SETTINGS_JSON) then
                     pcall(os.remove, SETTINGS_JSON)
                     if enableLogging then
+                        print("[WeatherTimeControl] Save on restart disabled, JSON file removed")
                     end
                 end
             end
@@ -445,8 +471,10 @@ imgui.OnFrame(function() return state.isWindowOpen[0] end, function()
             end)
             if success then
                 if enableLogging then
+                    print("[WeatherTimeControl] Reset weather to ID 0 and time to 12:00, lock disabled")
                 end
             elseif enableLogging then
+                print("[WeatherTimeControl] Failed to reset: " .. tostring(err))
             end
             -- Сохранение сброшенных настроек в JSON или удаление файла
             if state.saveOnRestart[0] then
@@ -455,6 +483,7 @@ imgui.OnFrame(function() return state.isWindowOpen[0] end, function()
                 if doesFileExist(SETTINGS_JSON) then
                     pcall(os.remove, SETTINGS_JSON)
                     if enableLogging then
+                        print("[WeatherTimeControl] JSON file removed after reset")
                     end
                 end
             end
@@ -463,6 +492,8 @@ imgui.OnFrame(function() return state.isWindowOpen[0] end, function()
         imgui.End()
     end)
     if not success and enableLogging then
+        print("[WeatherTimeControl] Rendering error: " .. tostring(err))
+        sampAddChatMessage("[WeatherTimeControl] Ошибка рендеринга интерфейса", 0xFF0000)
     end
 
     if state.customFont then
