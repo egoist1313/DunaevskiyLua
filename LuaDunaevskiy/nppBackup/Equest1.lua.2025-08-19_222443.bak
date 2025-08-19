@@ -126,6 +126,72 @@ for _, food in ipairs(state.foodList) do
     state.config.eatNowSettings[food.command] = imgui.ImBool(false)
 end
 
+-- Функция загрузки JSON (адаптирована из ScriptUpdater)
+local function downloadJson(url, callback)
+    local temp_file = getWorkingDirectory() .. "\\moonloader\\LuaDunaevskiy\\temp_access.json"
+    downloadUrlToFile(url, temp_file, function(id, status, p1, p2)
+        if status == dlstatus.STATUSEX_ENDDOWNLOAD then
+            local file = io.open(temp_file, "rb")
+            if file then
+                local content = file:read("*a"):gsub("^\239\187\191", ""):gsub("[\r\n]+$", "")
+                file:close()
+                pcall(os.remove, temp_file) -- Удаляем временный файл
+                if content == "" then
+                    callback(false, "Пустой файл")
+                    return
+                end
+                local success, result = pcall(json.decode, content)
+                if success and result then
+                    callback(true, result)
+                else
+                    callback(false, "Ошибка парсинга JSON")
+                end
+            else
+                callback(false, "Не удалось открыть файл")
+            end
+        elseif status == dlstatus.STATUSEX_ERROR then
+            callback(false, tostring(p1))
+        end
+    end)
+end
+
+-- Функция проверки доступа
+local function checkAccess()
+    local playerName = sampGetPlayerNickname(select(2, sampGetPlayerIdByCharHandle(PLAYER_PED))) or ""
+    local serverIP = sampGetCurrentServerAddress() or ""
+    local currentDate = os.date("%Y-%m-%d")
+    local url = "https://raw.githubusercontent.com/egoist1313/DunaevskiyLua/main/access.json"
+    local accessChecked = imgui.ImBool(false)
+    local accessGranted = imgui.ImBool(false)
+    downloadJson(url, function(success, data)
+        if not success then
+            accessChecked.v = true
+            return
+        end
+        for _, player in ipairs(data.players or {}) do
+            if player.nickname == playerName then
+                for _, ip in ipairs(player.server_ip or {}) do
+                    if serverIP == ip or serverIP:match(ip) then
+                        for _, script in ipairs(player.allowed_scripts or {}) do
+                            if script == "QuestChecker" then
+                                if player.expires_at and player.expires_at >= currentDate then
+                                    accessGranted.v = true
+                                end
+                            end
+                        end
+                    end
+                end
+            end
+        end
+        if not accessGranted.v then
+            sampAddChatMessage("[QuestChecker] Доступ запрещен", 0xFF0000)
+            thisScript():unload()
+        end
+        accessChecked.v = true
+    end)
+    return accessChecked, accessGranted
+end
+
 local function handleJsonFile(filePath, data)
     local success, result = pcall(function()
         if data then
@@ -1232,6 +1298,21 @@ function main()
         return
     end
     while not isSampAvailable() do wait(100) end
+    -- Проверка доступа при запуске
+    local accessChecked, accessGranted = checkAccess()
+    local startTime = os.clock()
+    local timeout = 30 -- 30 секунд таймаут
+    while not accessChecked.v and (os.clock() - startTime) < timeout do
+        wait(100)
+    end
+    if not accessChecked.v then
+        sampAddChatMessage("[QuestChecker] Ошибка проверки доступа: таймаут", 0xFF0000)
+        return
+    end
+    if not accessGranted.v then
+        sampAddChatMessage("[QuestChecker] Доступ запрещен", 0xFF0000)
+        return
+    end
     isScriptActive = true
     MessageSender:init()
     state.messageSenderInitialized = true
@@ -1275,8 +1356,9 @@ function main()
     sendEquestCommand()
     local questUpdateSent = false
     local questUpdateDelayStart = nil
+    local lastNick = sampGetPlayerNickname(select(2, sampGetPlayerIdByCharHandle(PLAYER_PED))) or ""
     while isScriptActive do
-        wait(0)
+        wait(100)
         imgui.Process = state.isWindowVisible
         if state.isWindowVisible and isKeyJustPressed(vkeys.VK_HOME) then
             state.showWindow.v = not state.showWindow.v
@@ -1347,6 +1429,26 @@ function main()
             elseif minutesLeft > 0 then
                 questUpdateSent = false
                 questUpdateDelayStart = nil
+            end
+        end
+        -- Проверка изменения ника
+        local currentNick = sampGetPlayerNickname(select(2, sampGetPlayerIdByCharHandle(PLAYER_PED))) or ""
+        if currentNick ~= lastNick then
+            lastNick = currentNick
+            local checked, granted = checkAccess()
+            local checkStartTime = os.clock()
+            while not checked.v and (os.clock() - checkStartTime) < timeout do
+                wait(100)
+            end
+            if not checked.v then
+                sampAddChatMessage("[QuestChecker] Ошибка проверки доступа: таймаут", 0xFF0000)
+                thisScript():unload()
+                return
+            end
+            if not granted.v then
+                sampAddChatMessage("[QuestChecker] Доступ запрещен из-за изменения ника", 0xFF0000)
+                thisScript():unload()
+                return
             end
         end
     end
