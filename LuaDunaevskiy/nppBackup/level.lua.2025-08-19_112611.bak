@@ -1,4 +1,3 @@
-
 local script_name = 'Level'
 local script_version = '2.0.0'
 script_properties("work-in-pause")
@@ -17,9 +16,10 @@ local settings_file = getWorkingDirectory() .. "\\LuaDunaevskiy\\config\\Level.j
 -- Проверка доступа
 local function checkAccess()
     local required_hash = _G["SCRIPT_ACCESS_LEVEL.LUA"]
-    local expires_at = _G["SCRIPT_EXPIRES_LEVEL.LUA"]
-    if required_hash and expires_at then
+    if required_hash then
         local playerName = sampGetPlayerNickname(select(2, sampGetPlayerIdByCharHandle(PLAYER_PED))) or ""
+        local serverIP = sampGetCurrentServerAddress() or ""
+        local expires_at = "2025-09-01" -- Должно совпадать с access.json
         local computed_hash = md5(playerName .. "Level.lua" .. expires_at)
         if computed_hash == required_hash then
             return true
@@ -27,10 +27,8 @@ local function checkAccess()
             sampAddChatMessage("[Level] Доступ запрещен: неверный хеш", 0xFF0000)
             return false
         end
-    else
-        sampAddChatMessage("[Level] Доступ запрещен: отсутствует информация о доступе", 0xFF0000)
-        return false
     end
+    return true
 end
 
 -- Настройки по умолчанию
@@ -94,7 +92,6 @@ local function load_settings()
 end
 
 function main()
-    -- Проверка доступа
     if not checkAccess() then
         sampAddChatMessage("[Level] Скрипт не запущен: доступ запрещен", 0xFF0000)
         return
