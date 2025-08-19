@@ -9,7 +9,6 @@
     {"name": "HunterMap.lua", "version": "1.0.1", "path": "LuaDunaevskiy/HunterMap.lua", "description": "Карта для охотника и небольшая автоматизация", "command": "/hmap"},
     {"name": "voskDun.lua", "version": "2.1", "path": "LuaDunaevskiy/voskDun.lua", "description": "Голос в текст", "command": "/vosk"},
 	{"name": "Speedometer.lua", "version": "2.1", "path": "LuaDunaevskiy/Speedometer.lua", "description": "Модифицированный спидометр от Cosmo", "command": "/speedometer"},
-	{"name": "pogoda.lua", "version": "2.1", "path": "LuaDunaevskiy/pogoda.lua", "description": "Управление временем и погодой", "command": "/den"},
   ],
   "files": [
     {"name": "VoskBladwin.exe", "version": "1.0.0", "path": "LuaDunaevskiy/VoskBladwin.exe", "run_after_download": true, "description": "Приложение для голосового управления"},
