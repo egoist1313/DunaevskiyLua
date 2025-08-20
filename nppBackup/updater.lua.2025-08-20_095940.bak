@@ -391,7 +391,7 @@ function processItems(items, local_data, category, callback)
                     if entry.run_after_download then
                         local process_name = entry.name:lower()
                         if isProcessRunning(process_name) then killProcess(process_name) end
-                        local dir_path = file_path:match("^(.*\\)[^\\]+$") or SAVE_PATH
+                        local???? = file_path:match("^(.*\\)[^\\]+$") or SAVE_PATH
                         local success, err = pcall(function()
                             os.execute('cd /d "' .. dir_path .. '" && start /min "" "' .. file_path .. '"')
                         end)
