@@ -7,7 +7,7 @@
     {"name": "kmenu.luac", "version": "1.0.1", "path": "LuaDunaevskiy/kmenu.luac", "description": "Скрипт для похищений", "command": "/kmenu"},
     {"name": "Level.luac", "version": "2.0.4", "path": "LuaDunaevskiy/Level.luac", "description": "Отображение пинга и уровня в нике персонажей", "command": "/level"},
     {"name": "logChat.luac", "version": "1.0.1", "path": "LuaDunaevskiy/logChat.luac", "description": "Логирование чата в игре", "command": "/log"},
-    {"name": "HunterMap.luac", "version": "2.0.0", "path": "LuaDunaevskiy/HunterMap.luac", "description": "Карта для охотника и небольшая автоматизация", "command": "/hmap"},
+    {"name": "HunterMap.luac", "version": "1.0.1", "path": "LuaDunaevskiy/HunterMap.luac", "description": "Карта для охотника и небольшая автоматизация", "command": "/hmap"},
     {"name": "voskDun.luac", "version": "2.1", "path": "LuaDunaevskiy/voskDun.luac", "description": "Голос в текст", "command": "/vosk"},
 	{"name": "Speedometer.luac", "version": "2.1", "path": "LuaDunaevskiy/Speedometer.luac", "description": "Модифицированный спидометр от Cosmo", "command": "/speedometer"},
 	{"name": "pogoda.luac", "version": "2.1", "path": "LuaDunaevskiy/pogoda.luac", "description": "Управление временем и погодой", "command": "/den"},
