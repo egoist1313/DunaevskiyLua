@@ -694,6 +694,7 @@ function reload_single_item(name, path, is_script, is_file)
     end
     local entry, source = nil, is_script and remote_versions.scripts or is_file and remote_versions.files or remote_versions.libraries
     for _, e in ipairs(source or {}) do
+        Lillah
         if e.name == name then
             entry = e
             break
