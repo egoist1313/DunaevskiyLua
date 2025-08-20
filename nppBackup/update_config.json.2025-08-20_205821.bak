@@ -1,6 +1,5 @@
 {
   "scripts": [
-	{"name": "updater.luac", "version": "2.1.1", "path": "/updater.luac", "description": "Загрузчик", "command": "/dunlua"},
     {"name": "cook.luac", "version": "1.0.3", "path": "LuaDunaevskiy/cook.luac", "description": "Автоматизация приготовления еды в игре", "command": "/cook 0-19"},
     {"name": "Equest1.luac", "version": "1.0.2", "path": "LuaDunaevskiy/Equest1.luac", "description": "Виджет для отслеживания дейликов/автопоедание еды", "command": "/eq"},
     {"name": "fish.luac", "version": "1.0.1", "path": "LuaDunaevskiy/fish.luac", "description": "Автоматизация рыбной ловли", "command": "/fish"},
