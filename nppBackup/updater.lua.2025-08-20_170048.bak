@@ -390,7 +390,7 @@ function downloadUpdates()
         new_versions.libraries = data.versions
         updated_libraries = updated
     end)
-    if development_versions and development_versions.scripts and isPlayerAllowed() then
+    if development_versions and dedevelopment_versions.scripts and isPlayerAllowed() then
         processItems(development_versions.scripts, local_versions.dev_versions or {}, "скрипт разработки", function(data, updated)
             new_versions.dev_versions = data.versions
             new_versions.descriptions = data.descriptions
