@@ -50,9 +50,85 @@ function clearLogFile()
     end
 end
 
+-- Стиль ImGui с улучшенным дизайном
+local style = {}
+function style.blue(imgui)
+    imgui.OnInitialize(function()
+        local style = imgui.GetStyle()
+        local colors = style.Colors
+        local clr = imgui.Col
+        local ImVec4 = imgui.ImVec4
+        style.WindowRounding = 20.0
+        style.WindowTitleAlign = imgui.ImVec2(0.5, 0.5)
+        style.ChildRounding = 15.0
+        style.FrameRounding = 15.0
+        style.PopupRounding = 15.0
+        style.ScrollbarRounding = 15.0
+        style.GrabRounding = 15.0
+        style.TabRounding = 15.0
+        style.ItemSpacing = imgui.ImVec2(8.0, 6.0)
+        style.ScrollbarSize = 12.0
+        style.GrabMinSize = 10.0
+        style.ButtonTextAlign = imgui.ImVec2(0.5, 0.5)
+        style.AntiAliasedLines = true
+        style.AntiAliasedFill = true
+        style.WindowBorderSize = 1.0
+        style.FrameBorderSize = 0.5
+        style.PopupBorderSize = 0.5
+        colors[clr.Text] = ImVec4(0.95, 0.95, 0.95, 1.00)
+        colors[clr.TextDisabled] = ImVec4(0.60, 0.60, 0.60, 1.00)
+        colors[clr.WindowBg] = ImVec4(0.10, 0.10, 0.12, 0.85)
+        colors[clr.ChildBg] = ImVec4(0.00, 0.00, 0.00, 0.00)
+        colors[clr.PopupBg] = ImVec4(0.12, 0.12, 0.14, 0.90)
+        colors[clr.Border] = ImVec4(0.20, 0.20, 0.25, 0.50)
+        colors[clr.BorderShadow] = ImVec4(0.00, 0.00, 0.00, 0.10)
+        colors[clr.FrameBg] = ImVec4(0.15, 0.15, 0.20, 0.70)
+        colors[clr.FrameBgHovered] = ImVec4(0.25, 0.50, 0.75, 0.80)
+        colors[clr.FrameBgActive] = ImVec4(0.30, 0.60, 0.85, 0.90)
+        colors[clr.TitleBg] = ImVec4(0.08, 0.08, 0.10, 1.00)
+        colors[clr.TitleBgActive] = ImVec4(0.15, 0.30, 0.50, 1.00)
+        colors[clr.TitleBgCollapsed] = ImVec4(0.08, 0.08, 0.10, 0.75)
+        colors[clr.MenuBarBg] = ImVec4(0.12, 0.12, 0.14, 1.00)
+        colors[clr.ScrollbarBg] = ImVec4(0.05, 0.05, 0.07, 0.50)
+        colors[clr.ScrollbarGrab] = ImVec4(0.30, 0.30, 0.35, 1.00)
+        colors[clr.ScrollbarGrabHovered] = ImVec4(0.40, 0.40, 0.45, 1.00)
+        colors[clr.ScrollbarGrabActive] = ImVec4(0.50, 0.50, 0.55, 1.00)
+        colors[clr.CheckMark] = ImVec4(0.30, 0.60, 0.90, 1.00)
+        colors[clr.SliderGrab] = ImVec4(0.25, 0.50, 0.80, 1.00)
+        colors[clr.SliderGrabActive] = ImVec4(0.30, 0.60, 0.90, 1.00)
+        colors[clr.Button] = ImVec4(0.20, 0.40, 0.70, 0.70)
+        colors[clr.ButtonHovered] = ImVec4(0.25, 0.50, 0.80, 0.90)
+        colors[clr.ButtonActive] = ImVec4(0.30, 0.60, 0.90, 1.00)
+        colors[clr.Header] = ImVec4(0.20, 0.40, 0.70, 0.50)
+        colors[clr.HeaderHovered] = ImVec4(0.25, 0.50, 0.80, 0.80)
+        colors[clr.HeaderActive] = ImVec4(0.30, 0.60, 0.90, 1.00)
+        colors[clr.Separator] = ImVec4(0.20, 0.20, 0.25, 0.50)
+        colors[clr.SeparatorHovered] = ImVec4(0.25, 0.50, 0.80, 0.78)
+        colors[clr.SeparatorActive] = ImVec4(0.30, 0.60, 0.90, 1.00)
+        colors[clr.ResizeGrip] = ImVec4(0.20, 0.40, 0.70, 0.25)
+        colors[clr.ResizeGripHovered] = ImVec4(0.25, 0.50, 0.80, 0.67)
+        colors[clr.ResizeGripActive] = ImVec4(0.30, 0.60, 0.90, 0.95)
+        colors[clr.CloseButton] = ImVec4(0.50, 0.50, 0.50, 0.50)
+        colors[clr.CloseButtonHovered] = ImVec4(0.90, 0.40, 0.40, 1.00)
+        colors[clr.CloseButtonActive] = ImVec4(0.90, 0.40, 0.40, 1.00)
+        colors[clr.PlotLines] = ImVec4(0.60, 0.60, 0.60, 1.00)
+        colors[clr.PlotLinesHovered] = ImVec4(0.90, 0.50, 0.40, 1.00)
+        colors[clr.PlotHistogram] = ImVec4(0.80, 0.60, 0.00, 1.00)
+        colors[clr.PlotHistogramHovered] = ImVec4(0.90, 0.70, 0.00, 1.00)
+        colors[clr.TextSelectedBg] = ImVec4(0.25, 0.50, 0.80, 0.35)
+        colors[clr.ModalWindowDimBg] = ImVec4(0.20, 0.20, 0.20, 0.35)
+    end)
+end
+
+local module = {}
+function module.set(imgui, name)
+    if name == nil or style[name] == nil then return false end
+    style[name](imgui)
+    return true
+end
+
 -- Проверка загрузки mimgui
 if imgui == nil then
-    logToFile("Ошибка: mimgui не загружен")
     return
 end
 
@@ -755,10 +831,10 @@ function renderTable(title, items, versions, is_script, category)
     imgui.SetColumnWidth(0, 150)
     imgui.SetColumnWidth(1, is_script and 50 or 80)
     if is_script then
-        imgui.SetColumnWidth(2, 90)
-        imgui.SetColumnWidth(3, 100)
+        imgui.SetColumnWidth(2, 50)
+        imgui.SetColumnWidth(3, 90)
         imgui.SetColumnWidth(4, 50)
-        imgui.SetColumnWidth(5, 88)
+        imgui.SetColumnWidth(5, 120)
         imgui.SetColumnWidth(6, 200)
         imgui.Text(u8"Имя скрипта") imgui.NextColumn()
         imgui.Text(u8"Версия") imgui.NextColumn()
@@ -863,48 +939,17 @@ end
 
 imgui.OnInitialize(function()
     imgui.GetIO().IniFilename = nil
-    logToFile("ImGui инициализировано")
 end)
 
 imgui.OnFrame(
     function() return showMenu[0] end,
     function()
+        module.set(imgui, "blue")
+        imgui.ShowCursor = true
+        imgui.SetNextWindowSize(imgui.ImVec2(700, 500), imgui.Cond.Always)
+        local screen_x, screen_y = getScreenResolution()
+        imgui.SetNextWindowPos(imgui.ImVec2(screen_x / 2, screen_y / 2), imgui.Cond.Always, imgui.ImVec2(0.5, 0.5))
         local success, err = pcall(function()
-            -- Применение стиля из Pogoda.lua
-            local style = imgui.GetStyle()
-            local colors = style.Colors
-            local clr = imgui.Col
-            local ImVec4 = imgui.ImVec4
-            style.WindowRounding = 15.0
-            style.WindowTitleAlign = imgui.ImVec2(0.5, 0.5)
-            style.FrameRounding = 10.0
-            style.ScrollbarRounding = 10.0
-            style.GrabRounding = 10.0
-            style.ItemSpacing = imgui.ImVec2(8.0, 6.0)
-            style.ScrollbarSize = 12.0
-            style.GrabMinSize = 10.0
-            style.ButtonTextAlign = imgui.ImVec2(0.5, 0.5)
-            style.AntiAliasedLines = true
-            style.AntiAliasedFill = true
-            style.WindowBorderSize = 1.0
-            style.FrameBorderSize = 0.5
-            colors[clr.Text] = ImVec4(0.95, 0.95, 0.95, 1.00)
-            colors[clr.WindowBg] = ImVec4(0.10, 0.10, 0.12, 0.85)
-            colors[clr.FrameBg] = ImVec4(0.15, 0.15, 0.20, 0.70)
-            colors[clr.FrameBgHovered] = ImVec4(0.25, 0.50, 0.75, 0.80)
-            colors[clr.FrameBgActive] = ImVec4(0.30, 0.60, 0.85, 0.90)
-            colors[clr.Button] = ImVec4(0.20, 0.40, 0.70, 0.70)
-            colors[clr.ButtonHovered] = ImVec4(0.25, 0.50, 0.80, 0.90)
-            colors[clr.ButtonActive] = ImVec4(0.30, 0.60, 0.90, 1.00)
-            colors[clr.CheckMark] = ImVec4(0.30, 0.60, 0.90, 1.00)
-            colors[clr.SliderGrab] = ImVec4(0.25, 0.50, 0.80, 1.00)
-            colors[clr.SliderGrabActive] = ImVec4(0.30, 0.60, 0.90, 1.00)
-            logToFile("Стиль ImGui применён")
-
-            imgui.ShowCursor = true
-            imgui.SetNextWindowSize(imgui.ImVec2(700, 500), imgui.Cond.Always)
-            local screen_x, screen_y = getScreenResolution()
-            imgui.SetNextWindowPos(imgui.ImVec2(screen_x / 2, screen_y / 2), imgui.Cond.Always, imgui.ImVec2(0.5, 0.5))
             imgui.Begin(u8"Dunaevskiy Lua Scripts##main_window", showMenu, imgui.WindowFlags.NoCollapse + imgui.WindowFlags.NoResize)
             imgui.BeginGroup()
             local button_width = isPlayerAllowed() and 174 or 232
