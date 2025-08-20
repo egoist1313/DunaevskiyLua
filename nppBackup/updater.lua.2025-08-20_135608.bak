@@ -904,7 +904,7 @@ imgui.OnFrame(
             style.ButtonTextAlign = imgui.ImVec2(0.5, 0.5)
             style.AntiAliasedLines = true
             style.AntiAliasedFill = true
-            style.WindowBorderSize = 0.0
+            style.WindowBorderSize = 1.0
             style.FrameBorderSize = 0.5
             colors[clr.Text] = ImVec4(0.95, 0.95, 0.95, 1.00)
             colors[clr.WindowBg] = ImVec4(0.10, 0.10, 0.12, 0.85)
@@ -925,21 +925,7 @@ imgui.OnFrame(
             imgui.SetNextWindowSize(imgui.ImVec2(700, 500), imgui.Cond.Always)
             local screen_x, screen_y = getScreenResolution()
             imgui.SetNextWindowPos(imgui.ImVec2(screen_x / 2, screen_y / 2), imgui.Cond.Always, imgui.ImVec2(0.5, 0.5))
-            imgui.Begin(u8"Dunaevskiy Lua Scripts##main_window", showMenu, imgui.WindowFlags.NoTitleBar + imgui.WindowFlags.NoResize + imgui.WindowFlags.NoScrollbar)
-
-            -- Кастомный заголовок с отцентрированным текстом и кнопкой закрытия
-            imgui.BeginChild("CustomTitle", imgui.ImVec2(0, 30), false, imgui.WindowFlags.NoScrollbar)
-            local text = u8"Dunaevskiy Lua Scripts Updater"
-            local text_width = imgui.CalcTextSize(text).x
-            local window_width = imgui.GetWindowWidth()
-            imgui.SetCursorPosX((window_width - text_width - 40) / 2) -- Центрируем текст, учитывая ширину кнопки закрытия (40)
-            imgui.Text(text)
-            imgui.SameLine()
-            imgui.SetCursorPosX(window_width - 40) -- Позиционируем крестик справа
-            if imgui.Button(u8"Х", imgui.ImVec2(30, 20)) then
-                showMenu[0] = false -- Закрываем окно
-            end
-            imgui.EndChild()
+            imgui.Begin(u8"Dunaevskiy Lua Scripts##main_window", showMenu, imgui.WindowFlags.NoCollapse + imgui.WindowFlags.NoResize + imgui.WindowFlags.NoScrollbar)
 
             -- Закреплённые кнопки без рамки и полосы прокрутки
             imgui.BeginChild("Tabs", imgui.ImVec2(0, 40), false, imgui.WindowFlags.NoScrollbar)
@@ -970,7 +956,7 @@ imgui.OnFrame(
                 imgui.SameLine(0, 5)
                 imgui.PushStyleColor(imgui.Col.Button, active_tab[0] == 3 and active_button_color or inactive_button_color)
                 if imgui.Button(u8"Разработка##dev_tab", imgui.ImVec2(button_width, 30)) then active_tab[0] = 3 end
-            imgui.PopStyleColor()
+                imgui.PopStyleColor()
             end
             imgui.EndChild()
 
