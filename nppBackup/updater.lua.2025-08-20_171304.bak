@@ -1,3 +1,4 @@
+
 script_name('ScriptUpdater')
 script_author('Alex_Swift')
 local script_version = '2.0.1'
@@ -43,7 +44,9 @@ end
 function clearLogFile()
     local log_path = (getGameDirectory() or "") .. "\\moonloader\\LuaDunaevskiy\\"
     ensureDirectoryExists(log_path)
-    local file = io.open(log_path .. "updater.log", "w")
+    local file = io.open(log_path ..
+
+ "updater.log", "w")
     if file then
         file:write("")
         file:close()
@@ -291,7 +294,7 @@ function processItems(items, local_data, category, callback)
         else
             local local_ver = local_data[entry.name]
             -- Для updater.lua сравниваем с script_version
-            local remote_ver = (entry.name == UPDATER_NAME) and script_version or entry.version
+            local remote_ver = (entry.name == UPDATER_NAME) and script_version() or entry.version
             if isNewerVersion(local_ver, remote_ver) then
                 local file_path = SAVE_PATH .. entry.path:gsub("/", "\\")
                 createDirectoriesForPath(file_path)
@@ -534,12 +537,10 @@ function checkForUpdates()
                 end
             end
             -- Для updater.lua заменяем версию из конфига на script_version
-            if config.scripts then
-                for _, entry in ipairs(config.scripts) do
-                    if entry.name == UPDATER_NAME then
-                        entry.version = script_version
-                        break
-                    end
+            for _, entry in ipairs(config.scripts or {}) do
+                if entry.name == UPDATER_NAME then
+                    entry.version = script_version()
+                    break
                 end
             end
         end
