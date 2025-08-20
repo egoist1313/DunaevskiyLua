@@ -1,4 +1,3 @@
-
 script_name('ScriptUpdater')
 script_author('Alex_Swift')
 script_version('2.0.1')
@@ -44,9 +43,7 @@ end
 function clearLogFile()
     local log_path = (getGameDirectory() or "") .. "\\moonloader\\LuaDunaevskiy\\"
     ensureDirectoryExists(log_path)
-    local file = io.open(log_path ..
-
- "updater.log", "w")
+    local file = io.open(log_path .. "updater.log", "w")
     if file then
         file:write("")
         file:close()
@@ -293,9 +290,7 @@ function processItems(items, local_data, category, callback)
             logToFile("Некорректная структура записи в " .. category)
         else
             local local_ver = local_data[entry.name]
-            -- Для updater.lua сравниваем с script_version
-            local remote_ver = (entry.name == UPDATER_NAME) and script_version() or entry.version
-            if isNewerVersion(local_ver, remote_ver) then
+            if isNewerVersion(local_ver, entry.version) then
                 local file_path = SAVE_PATH .. entry.path:gsub("/", "\\")
                 createDirectoriesForPath(file_path)
                 local url = string.format("https://raw.githubusercontent.com/%s/%s/%s/%s", GITHUB_USER, GITHUB_REPO, GITHUB_BRANCH, entry.path)
@@ -316,24 +311,14 @@ function processItems(items, local_data, category, callback)
                 if not download_done then
                     logToFile("Таймаут загрузки " .. category .. ": " .. entry.name)
                 elseif success then
-                    new_data.versions[entry.name] = remote_ver
+                    new_data.versions[entry.name] = entry.version
                     if entry.description then new_data.descriptions[entry.name] = entry.description end
                     if entry.command then new_data.commands[entry.name] = entry.command end
-                    logToFile("Обновлен " .. category .. " " .. entry.name .. " до версии " .. remote_ver)
-                    sampAddChatMessage("[Updater] Обновлен " .. category .. " " .. entry.name .. " до версии " .. remote_ver, 0x00FF00)
+                    logToFile("Обновлен " .. category .. " " .. entry.name .. " до версии " .. entry.version)
+                    sampAddChatMessage("[Updater] Обновлен " .. category .. " " .. entry.name .. " до версии " .. entry.version, 0x00FF00)
                     updated = true
                     if category == "скрипт" and entry.name == UPDATER_NAME then
                         updater_updated = true
-                        -- Перезапуск скрипта
-                        local success, err = pcall(function()
-                            script.load(file_path)
-                        end)
-                        if not success then
-                            logToFile("Ошибка перезапуска скрипта " .. entry.name .. ": " .. tostring(err))
-                        else
-                            logToFile("Скрипт " .. entry.name .. " перезапущен")
-                            sampAddChatMessage("[Updater] Скрипт " .. entry.name .. " перезапущен", 0x00FF00)
-                        end
                     end
                     if entry.run_after_download then
                         local process_name = entry.name:lower()
@@ -351,7 +336,7 @@ function processItems(items, local_data, category, callback)
                     if doesFileExist(file_path) then pcall(os.remove, file_path) end
                 end
             else
-                new_data.versions[entry.name] = local_data[entry.name] or remote_ver
+                new_data.versions[entry.name] = local_data[entry.name] or entry.version
                 new_data.descriptions[entry.name] = local_versions.descriptions[entry.name]
                 if category == "скрипт" then
                     new_data.commands[entry.name] = local_versions.commands[entry.name]
@@ -390,7 +375,7 @@ function downloadUpdates()
         new_versions.libraries = data.versions
         updated_libraries = updated
     end)
-    if development_versions and dedevelopment_versions.scripts and isPlayerAllowed() then
+    if development_versions and development_versions.scripts and isPlayerAllowed() then
         processItems(development_versions.scripts, local_versions.dev_versions or {}, "скрипт разработки", function(data, updated)
             new_versions.dev_versions = data.versions
             new_versions.descriptions = data.descriptions
@@ -536,13 +521,6 @@ function checkForUpdates()
                     local_versions.descriptions[entry.name] = entry.description
                 end
             end
-            -- Для updater.lua заменяем версию из конфига на script_version
-            for _, entry in ipairs(config.scripts or {}) do
-                if entry.name == UPDATER_NAME then
-                    entry.version = script_version()
-                    break
-                end
-            end
         end
     )
     if not success then
@@ -569,6 +547,7 @@ function checkForUpdates()
     if not success then
         logToFile("Не удалось загрузить update_development.json после " .. max_attempts .. " попыток")
     end
+    is_checking_updates = false
     downloadUpdates()
     if updater_updated then
         return
@@ -803,6 +782,7 @@ function renderTable(title, items, versions, is_script, category)
     end
     imgui.Separator()
     imgui.EndChild()
+
     -- Прокручиваемое содержимое таблицы
     imgui.BeginChild("TableContent_" .. category, imgui.ImVec2(0, 0), false)
     imgui.Columns(columns, category .. "_table_content", false)
@@ -946,6 +926,7 @@ imgui.OnFrame(
             local screen_x, screen_y = getScreenResolution()
             imgui.SetNextWindowPos(imgui.ImVec2(screen_x / 2, screen_y / 2), imgui.Cond.Always, imgui.ImVec2(0.5, 0.5))
             imgui.Begin(u8"Dunaevskiy Lua Scripts##main_window", showMenu, imgui.WindowFlags.NoTitleBar + imgui.WindowFlags.NoResize + imgui.WindowFlags.NoScrollbar)
+
             -- Кастомный заголовок с отцентрированным текстом и кнопкой закрытия
             imgui.BeginChild("CustomTitle", imgui.ImVec2(0, 30), false, imgui.WindowFlags.NoScrollbar)
             local text = u8"Dunaevskiy Lua Scripts Updater"
@@ -959,34 +940,40 @@ imgui.OnFrame(
                 showMenu[0] = false -- Закрываем окно
             end
             imgui.EndChild()
+
             -- Закреплённые кнопки без рамки и полосы прокрутки
             imgui.BeginChild("Tabs", imgui.ImVec2(0, 40), false, imgui.WindowFlags.NoScrollbar)
             local button_count = isPlayerAllowed() and 4 or 3
             local button_width = (imgui.GetWindowContentRegionWidth() - (button_count - 1) * 5) / button_count
             local active_button_color = ImVec4(0.30, 0.60, 0.90, 1.00)
             local inactive_button_color = ImVec4(0.20, 0.40, 0.70, 0.70)
+
             -- Кнопка "Скрипты"
             imgui.PushStyleColor(imgui.Col.Button, active_tab[0] == 0 and active_button_color or inactive_button_color)
             if imgui.Button(u8"Скрипты##scripts_tab", imgui.ImVec2(button_width, 30)) then active_tab[0] = 0 end
             imgui.PopStyleColor()
             imgui.SameLine(0, 5)
+
             -- Кнопка "Файлы"
             imgui.PushStyleColor(imgui.Col.Button, active_tab[0] == 1 and active_button_color or inactive_button_color)
             if imgui.Button(u8"Файлы##files_tab", imgui.ImVec2(button_width, 30)) then active_tab[0] = 1 end
             imgui.PopStyleColor()
             imgui.SameLine(0, 5)
+
             -- Кнопка "Библиотеки"
             imgui.PushStyleColor(imgui.Col.Button, active_tab[0] == 2 and active_button_color or inactive_button_color)
             if imgui.Button(u8"Библиотеки##libraries_tab", imgui.ImVec2(button_width, 30)) then active_tab[0] = 2 end
             imgui.PopStyleColor()
+
             -- Кнопка "Разработка" (если разрешено)
             if isPlayerAllowed() then
                 imgui.SameLine(0, 5)
                 imgui.PushStyleColor(imgui.Col.Button, active_tab[0] == 3 and active_button_color or inactive_button_color)
                 if imgui.Button(u8"Разработка##dev_tab", imgui.ImVec2(button_width, 30)) then active_tab[0] = 3 end
-                imgui.PopStyleColor()
+            imgui.PopStyleColor()
             end
             imgui.EndChild()
+
             -- Прокручиваемый контент
             imgui.BeginChild("Content", imgui.ImVec2(0, -40))
             if active_tab[0] == 0 then
@@ -999,6 +986,7 @@ imgui.OnFrame(
                 renderTable("Разработка", development_versions and development_versions.scripts, local_versions.dev_versions or {}, true, "dev_scripts")
             end
             imgui.EndChild()
+
             imgui.Separator()
             if is_checking_updates then
                 local pulse = math.sin(imgui.GetTime() * 4.0) * 0.1 + 0.9
