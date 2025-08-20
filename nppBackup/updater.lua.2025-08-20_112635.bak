@@ -747,15 +747,10 @@ function execute_script_command(script_name)
     end
 end
 
-imgui.OnInitialize(function()
-    imgui.GetIO().IniFilename = nil
-    logToFile("ImGui инициализировано")
-end)
-
 function renderTable(title, items, versions, is_script, category)
+    imgui.Text(u8(title))
+    imgui.Separator()
     local columns = is_script and 7 or 4
-    -- Закреплённые заголовки таблицы
-    imgui.BeginChild("TableHeaders_" .. category, imgui.ImVec2(0, 30), false, imgui.WindowFlags.NoScrollbar)
     imgui.Columns(columns, category .. "_table", false)
     imgui.SetColumnWidth(0, 150)
     imgui.SetColumnWidth(1, is_script and 50 or 80)
@@ -764,7 +759,7 @@ function renderTable(title, items, versions, is_script, category)
         imgui.SetColumnWidth(3, 100)
         imgui.SetColumnWidth(4, 50)
         imgui.SetColumnWidth(5, 88)
-        imgui.SetColumnWidth(6, 400)
+        imgui.SetColumnWidth(6, 200)
         imgui.Text(u8"Имя скрипта") imgui.NextColumn()
         imgui.Text(u8"Версия") imgui.NextColumn()
         imgui.Text(u8"Состояние") imgui.NextColumn()
@@ -781,23 +776,6 @@ function renderTable(title, items, versions, is_script, category)
         imgui.Text(u8"Описание") imgui.NextColumn()
     end
     imgui.Separator()
-    imgui.EndChild()
-
-    -- Прокручиваемое содержимое таблицы
-    imgui.BeginChild("TableContent_" .. category, imgui.ImVec2(0, 0), false)
-    imgui.Columns(columns, category .. "_table_content", false)
-    imgui.SetColumnWidth(0, 150)
-    imgui.SetColumnWidth(1, is_script and 50 or 80)
-    if is_script then
-        imgui.SetColumnWidth(2, 90)
-        imgui.SetColumnWidth(3, 100)
-        imgui.SetColumnWidth(4, 50)
-        imgui.SetColumnWidth(5, 88)
-        imgui.SetColumnWidth(6, 400)
-    else
-        imgui.SetColumnWidth(2, 120)
-        imgui.SetColumnWidth(3, 200)
-    end
     if items then
         for _, entry in ipairs(items) do
             local name = entry.name
@@ -881,8 +859,12 @@ function renderTable(title, items, versions, is_script, category)
         imgui.Text(u8("Нет данных о " .. (category == "scripts" and "скриптах" or category == "files" and "файлах" or category == "libraries" and "библиотеках" or "скриптах разработки")))
     end
     imgui.Columns(1)
-    imgui.EndChild()
 end
+
+imgui.OnInitialize(function()
+    imgui.GetIO().IniFilename = nil
+    logToFile("ImGui инициализировано")
+end)
 
 imgui.OnFrame(
     function() return showMenu[0] end,
@@ -917,51 +899,26 @@ imgui.OnFrame(
             colors[clr.CheckMark] = ImVec4(0.30, 0.60, 0.90, 1.00)
             colors[clr.SliderGrab] = ImVec4(0.25, 0.50, 0.80, 1.00)
             colors[clr.SliderGrabActive] = ImVec4(0.30, 0.60, 0.90, 1.00)
-            colors[clr.TitleBg] = ImVec4(0.10, 0.10, 0.12, 0.85)
-            colors[clr.TitleBgActive] = ImVec4(0.10, 0.10, 0.12, 0.85)
-            colors[clr.TitleBgCollapsed] = ImVec4(0.10, 0.10, 0.12, 0.85)
             logToFile("Стиль ImGui применён")
+
             imgui.ShowCursor = true
             imgui.SetNextWindowSize(imgui.ImVec2(700, 500), imgui.Cond.Always)
             local screen_x, screen_y = getScreenResolution()
             imgui.SetNextWindowPos(imgui.ImVec2(screen_x / 2, screen_y / 2), imgui.Cond.Always, imgui.ImVec2(0.5, 0.5))
-            imgui.Begin(u8"Dunaevskiy Lua Scripts##main_window", showMenu, imgui.WindowFlags.NoCollapse + imgui.WindowFlags.NoResize + imgui.WindowFlags.NoScrollbar)
-
-            -- Закреплённые кнопки без рамки и полосы прокрутки
-            imgui.BeginChild("Tabs", imgui.ImVec2(0, 40), false, imgui.WindowFlags.NoScrollbar)
-            local button_count = isPlayerAllowed() and 4 or 3
-            local button_width = (imgui.GetWindowContentRegionWidth() - (button_count - 1) * 5) / button_count
-            local active_button_color = ImVec4(0.30, 0.60, 0.90, 1.00)
-            local inactive_button_color = ImVec4(0.20, 0.40, 0.70, 0.70)
-
-            -- Кнопка "Скрипты"
-            imgui.PushStyleColor(imgui.Col.Button, active_tab[0] == 0 and active_button_color or inactive_button_color)
+            imgui.Begin(u8"Dunaevskiy Lua Scripts##main_window", showMenu, imgui.WindowFlags.NoCollapse + imgui.WindowFlags.NoResize)
+            imgui.BeginGroup()
+            local button_width = isPlayerAllowed() and 174 or 232
             if imgui.Button(u8"Скрипты##scripts_tab", imgui.ImVec2(button_width, 30)) then active_tab[0] = 0 end
-            imgui.PopStyleColor()
             imgui.SameLine(0, 5)
-
-            -- Кнопка "Файлы"
-            imgui.PushStyleColor(imgui.Col.Button, active_tab[0] == 1 and active_button_color or inactive_button_color)
             if imgui.Button(u8"Файлы##files_tab", imgui.ImVec2(button_width, 30)) then active_tab[0] = 1 end
-            imgui.PopStyleColor()
             imgui.SameLine(0, 5)
-
-            -- Кнопка "Библиотеки"
-            imgui.PushStyleColor(imgui.Col.Button, active_tab[0] == 2 and active_button_color or inactive_button_color)
             if imgui.Button(u8"Библиотеки##libraries_tab", imgui.ImVec2(button_width, 30)) then active_tab[0] = 2 end
-            imgui.PopStyleColor()
-
-            -- Кнопка "Разработка" (если разрешено)
             if isPlayerAllowed() then
                 imgui.SameLine(0, 5)
-                imgui.PushStyleColor(imgui.Col.Button, active_tab[0] == 3 and active_button_color or inactive_button_color)
                 if imgui.Button(u8"Разработка##dev_tab", imgui.ImVec2(button_width, 30)) then active_tab[0] = 3 end
-                imgui.PopStyleColor()
             end
-            imgui.EndChild()
-
-            -- Прокручиваемый контент
-            imgui.BeginChild("Content", imgui.ImVec2(0, -40))
+            imgui.EndGroup()
+            imgui.Separator()
             if active_tab[0] == 0 then
                 renderTable("Скрипты", remote_versions and remote_versions.scripts, local_versions.versions, true, "scripts")
             elseif active_tab[0] == 1 then
@@ -971,8 +928,6 @@ imgui.OnFrame(
             elseif active_tab[0] == 3 and isPlayerAllowed() then
                 renderTable("Разработка", development_versions and development_versions.scripts, local_versions.dev_versions or {}, true, "dev_scripts")
             end
-            imgui.EndChild()
-
             imgui.Separator()
             if is_checking_updates then
                 local pulse = math.sin(imgui.GetTime() * 4.0) * 0.1 + 0.9
