@@ -223,16 +223,10 @@ function loadJson(file_path, default_data)
         file:close()
         local success, result = pcall(json.decode, content)
         if success and result then
-            logToFile("Успешно загружен JSON: " .. file_path)
             if file_path:match("enabled%.json$") then
                 local converted_data = {}
                 for key, value in pairs(result) do
-                    if type(value) == "boolean" then
-                        converted_data[key] = imgui.new.bool(value)
-                    else
-                        logToFile("Некорректное значение в enabled.json для ключа " .. key .. ": " .. tostring(value))
-                        converted_data[key] = imgui.new.bool(false)
-                    end
+                    converted_data[key] = imgui.new.bool(value)
                 end
                 return converted_data
             end
@@ -241,7 +235,7 @@ function loadJson(file_path, default_data)
             logToFile("Ошибка декодирования JSON: " .. file_path .. ": " .. tostring(result))
         end
     else
-        logToFile("Файл JSON не найден: " .. file_path .. ", используется значение по умолчанию")
+        logToFile("Файл JSON не найден: " .. file_path)
     end
     return default_data
 end
@@ -272,13 +266,11 @@ function saveJson(file_path, data)
             end)
         end
         file:close()
-        if success then
-            logToFile("Успешно сохранён JSON: " .. file_path)
-        else
+        if not success then
             logToFile("Ошибка кодирования JSON: " .. file_path .. ": " .. tostring(err))
         end
     else
-        logToFile("Ошибка открытия файла для сохранения JSON: " .. file_path)
+        logToFile("Ошибка сохранения JSON: " .. file_path)
     end
 end
 
@@ -484,23 +476,16 @@ function downloadUpdates()
     enabled_scripts = loadJson(ENABLED_JSON, {})
     if not enabled_scripts then
         enabled_scripts = {}
-        logToFile("enabled_scripts установлено в пустую таблицу из-за ошибки загрузки")
     end
     for _, entry in ipairs(remote_versions.scripts or {}) do
-        if entry.name and entry.name ~= UPDATER_NAME then
-            if not enabled_scripts[entry.name] then
-                enabled_scripts[entry.name] = imgui.new.bool(false)
-                logToFile("Новый скрипт " .. entry.name .. " добавлен в enabled_scripts с состоянием false")
-            end
+        if entry.name then
+            enabled_scripts[entry.name] = imgui.new.bool(enabled_scripts[entry.name] and enabled_scripts[entry.name][0] or true)
         end
     end
     if development_versions and development_versions.scripts and isPlayerAllowed() then
         for _, entry in ipairs(development_versions.scripts) do
-            if entry.name and entry.name ~= UPDATER_NAME then
-                if not enabled_scripts[entry.name] then
-                    enabled_scripts[entry.name] = imgui.new.bool(false)
-                    logToFile("Новый скрипт разработки " .. entry.name .. " добавлен в enabled_scripts с состоянием false")
-                end
+            if entry.name then
+                enabled_scripts[entry.name] = imgui.new.bool(enabled_scripts[entry.name] and enabled_scripts[entry.name][0] or true)
             end
         end
     end
@@ -644,9 +629,8 @@ function process_scripts(action)
         local full_path = SAVE_PATH .. load_path
         if action == "load" and not script_handle then
             if not enabled_scripts[entry.name] then
-                enabled_scripts[entry.name] = imgui.new.bool(false)
+                enabled_scripts[entry.name] = imgui.new.bool(true)
                 saveJson(ENABLED_JSON, enabled_scripts)
-                logToFile("Скрипт " .. entry.name .. " добавлен в enabled_scripts с состоянием false")
             end
             if enabled_scripts[entry.name][0] then
                 logToFile("Попытка загрузки " .. (is_dev and "скрипта разработки" or "скрипта") .. ": " .. entry.name .. " по пути " .. load_path)
@@ -694,7 +678,6 @@ function reload_single_item(name, path, is_script, is_file)
     end
     local entry, source = nil, is_script and remote_versions.scripts or is_file and remote_versions.files or remote_versions.libraries
     for _, e in ipairs(source or {}) do
-        Lillah
         if e.name == name then
             entry = e
             break
@@ -733,9 +716,8 @@ function reload_single_item(name, path, is_script, is_file)
             if is_script then
                 local load_path = path or entry.path:gsub("/", "\\")
                 if not enabled_scripts[name] then
-                    enabled_scripts[name] = imgui.new.bool(false)
+                    enabled_scripts[name] = imgui.new.bool(true)
                     saveJson(ENABLED_JSON, enabled_scripts)
-                    logToFile("Скрипт " .. name .. " добавлен в enabled_scripts с состоянием false при перезагрузке")
                 end
                 local script_handle = script.find(name)
                 if script_handle then
@@ -896,8 +878,8 @@ function renderTable(title, items, versions, is_script, category)
                 end
                 imgui.NextColumn()
                 imgui.Text(u8(command)) imgui.NextColumn()
-                if imgui.Checkbox(u8("##enabled_" .. name), enabled_scripts[name] or imgui.new.bool(false)) then
-                    enabled_scripts[name] = enabled_scripts[name] or imgui.new.bool(false)
+                if imgui.Checkbox(u8("##enabled_" .. name), enabled_scripts[name] or imgui.new.bool(true)) then
+                    enabled_scripts[name] = enabled_scripts[name] or imgui.new.bool(true)
                     saveJson(ENABLED_JSON, enabled_scripts)
                     if not enabled_scripts[name][0] and script.find(name) then
                         local script_handle = script.find(name)
@@ -1032,7 +1014,6 @@ function main()
     enabled_scripts = loadJson(ENABLED_JSON, {})
     if not enabled_scripts then
         enabled_scripts = {}
-        logToFile("enabled_scripts установлено в пустую таблицу в main")
     end
     clearLogFile()
     while not isSampAvailable() do wait(100) end
