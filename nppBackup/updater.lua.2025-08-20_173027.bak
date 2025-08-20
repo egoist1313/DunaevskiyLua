@@ -1,6 +1,6 @@
 script_name('ScriptUpdater')
 script_author('Alex_Swift')
-local script_version = '2.0.0'
+local script_version = '2.0.1'
 script_properties("work-in-pause")
 require "lib.moonloader"
 local json = require "dkjson"
@@ -251,14 +251,11 @@ local ENABLED_JSON = SAVE_PATH .. "LuaDunaevskiy\\enabled.json"
 local TEMP_JSON = SAVE_PATH .. "LuaDunaevskiy\\temp_config.json"
 local DEV_TEMP_JSON = SAVE_PATH .. "LuaDunaevskiy\\temp_development.json"
 local UPDATER_NAME = "updater.lua"
-local UPDATER_TEMP = SAVE_PATH .. "LuaDunaevskiy\\updater_temp.lua"
-local UPDATER_LUAC = SAVE_PATH .. "updater.luac"
 local local_versions = loadJson(LOCAL_JSON, { versions = {}, files = {}, libraries = {}, dev_versions = {}, descriptions = {}, commands = {} })
 local dev_versions = { versions = local_versions.dev_versions or {}, descriptions = {}, commands = {} }
 local enabled_scripts = loadJson(ENABLED_JSON, {})
 local remote_versions, development_versions
 local updater_updated = false
-local updater_pending_restart = false
 local showMenu = imgui.new.bool(false)
 local download_complete = false
 local active_tab = imgui.new.int(0)
@@ -302,9 +299,7 @@ function processItems(items, local_data, category, callback)
                 download_status[entry.name] = true
                 local success, download_error
                 local download_done = false
-                -- Для updater.lua сохраняем во временный файл
-                local target_path = (entry.name == UPDATER_NAME) and UPDATER_TEMP or file_path
-                downloadFile(url, target_path, function(result, err)
+                downloadFile(url, file_path, function(result, err)
                     success = result
                     download_error = err
                     download_done = true
@@ -326,10 +321,7 @@ function processItems(items, local_data, category, callback)
                     updated = true
                     if category == "скрипт" and entry.name == UPDATER_NAME then
                         updater_updated = true
-                        updater_pending_restart = true
-                        logToFile("updater.lua сохранён во временный файл, ожидается перезапуск")
-                    elseif category == "скрипт" then
-                        -- Обычные скрипты перезапускаются сразу
+                        -- Перезапуск скрипта
                         local success, err = pcall(function()
                             script.load(file_path)
                         end)
@@ -353,7 +345,7 @@ function processItems(items, local_data, category, callback)
                     end
                 else
                     logToFile("Ошибка загрузки " .. category .. " " .. entry.name .. ": " .. tostring(download_error))
-                    if doesFileExist(target_path) then pcall(os.remove, target_path) end
+                    if doesFileExist(file_path) then pcall(os.remove, file_path) end
                 end
             else
                 new_data.versions[entry.name] = local_data[entry.name] or remote_ver
@@ -456,32 +448,6 @@ function downloadUpdates()
         logToFile("Обновлены скрипты: " .. tostring(updated_scripts) .. ", файлы: " .. tostring(updated_files) .. ", библиотеки: " .. tostring(updated_libraries))
     else
         sampAddChatMessage("[Updater] Все скрипты, файлы и библиотеки актуальны", 0x00FF00)
-    end
-    -- Обработка обновления updater.lua
-    if updater_updated and updater_pending_restart then
-        local final_path = doesFileExist(UPDATER_LUAC) and UPDATER_LUAC or (SAVE_PATH .. UPDATER_NAME)
-        local success, err = pcall(function()
-            -- Заменяем старый файл новым
-            if doesFileExist(UPDATER_TEMP) then
-                if doesFileExist(final_path) then
-                    pcall(os.remove, final_path)
-                end
-                os.rename(UPDATER_TEMP, final_path)
-                logToFile("updater.lua перемещён из временного файла в " .. final_path)
-                -- Перезапуск скрипта
-                script.load(final_path)
-                logToFile("updater.lua перезапущен")
-                sampAddChatMessage("[Updater] Скрипт " .. UPDATER_NAME .. " перезапущен", 0x00FF00)
-            else
-                logToFile("Ошибка: временный файл " .. UPDATER_TEMP .. " не найден")
-            end
-        end)
-        if not success then
-            logToFile("Ошибка при обновлении updater.lua: " .. tostring(err))
-            sampAddChatMessage("[Updater] Ошибка при обновлении updater.lua", 0xFF0000)
-        end
-        updater_updated = false
-        updater_pending_restart = false
     end
     local start_time = os.clock()
     while next(download_status) and (os.clock() - start_time) * 1000 < 30000 do
@@ -1085,8 +1051,6 @@ function main()
     TEMP_JSON = SAVE_PATH .. "LuaDunaevskiy\\temp_config.json"
     DEV_TEMP_JSON = SAVE_PATH .. "LuaDunaevskiy\\temp_development.json"
     UPDATER_NAME = "updater.lua"
-    UPDATER_TEMP = SAVE_PATH .. "LuaDunaevskiy\\updater_temp.lua"
-    UPDATER_LUAC = SAVE_PATH .. "updater.luac"
     local_versions = loadJson(LOCAL_JSON, { versions = {}, files = {}, libraries = {}, dev_versions = {}, descriptions = {}, commands = {} })
     dev_versions = { versions = local_versions.dev_versions or {}, descriptions = {}, commands = {} }
     enabled_scripts = loadJson(ENABLED_JSON, {})
