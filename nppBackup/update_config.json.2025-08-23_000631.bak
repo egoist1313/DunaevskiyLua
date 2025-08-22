@@ -2,7 +2,7 @@
   "scripts": [
     {"name": "cook.luac", "version": "1.1.3", "path": "LuaDunaevskiy/cook.luac", "description": "Автоматизация приготовления еды в игре", "command": "/cook 0-19"},
     {"name": "Equest1.luac", "version": "1.1.2", "path": "LuaDunaevskiy/Equest1.luac", "description": "Виджет для отслеживания дейликов/автопоедание еды", "command": "/eq"},
-    {"name": "fish.luac", "version": "3.1.1", "path": "LuaDunaevskiy/fish.luac", "description": "Автоматизация рыбной ловли", "command": "/fish"},
+    {"name": "fish.luac", "version": "1.1.1", "path": "LuaDunaevskiy/fish.luac", "description": "Автоматизация рыбной ловли", "command": "/fish"},
     {"name": "kmenu.luac", "version": "1.1.1", "path": "LuaDunaevskiy/kmenu.luac", "description": "Скрипт для похищений", "command": "/kmenu"},
     {"name": "Level.luac", "version": "2.1.4", "path": "LuaDunaevskiy/Level.luac", "description": "Отображение пинга и уровня в нике персонажей", "command": "/level"},
     {"name": "logChat.luac", "version": "1.1.1", "path": "LuaDunaevskiy/logChat.luac", "description": "Логирование чата в игре", "command": "/log"},

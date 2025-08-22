@@ -8,13 +8,21 @@ local ffi = require 'ffi'
 encoding.default = 'CP1251'
 local u8 = encoding.UTF8
 local cp1251 = encoding.CP1251
-local inActive = imgui.new.bool(false) -- Состояние анализа входящих пакетов
-local outActive = imgui.new.bool(false) -- Состояние анализа исходящих пакетов
+local inMode = imgui.new.int(0) -- 0: выключен, 1: все ID, 2: ID и данные указанного пакета, 3: ID и содержимое всех пакетов
+local outMode = imgui.new.int(0) -- Аналогично для исходящих
+local inTargetPacketId = imgui.new.int(0) -- ID пакета для режима 2 (входящие)
+local outTargetPacketId = imgui.new.int(0) -- ID пакета для режима 2 (исходящие)
 local excludedPacketIds = {61, 93} -- Пакеты, исключённые из логов
 local showMenu = imgui.new.bool(false) -- Видимость окна ImGui
 local packets = {} -- Список пакетов для отображения
 local filterPacketId = imgui.new.int(-1) -- Фильтр по ID пакета (-1: без фильтра)
 local excludeInput = imgui.new.char[10]() -- Ввод для добавления ID в исключения
+-- Список строк для выпадающих списков
+local modeLabelsRaw = {u8('Выключен'), u8('Все ID'), u8('Указанный ID'), u8('Все данные')}
+local modeLabels = {}
+for _, label in ipairs(modeLabelsRaw) do
+    table.insert(modeLabels, label)
+end
 -- Функция для преобразования байтов в читаемый текст (CP1251 -> UTF-8)
 function bytesToText(bytes)
     local text = {}
@@ -41,6 +49,11 @@ function main()
     sampRegisterChatCommand('packet', function() showMenu[0] = not showMenu[0] end)
     print('Packet Analyzer started! Use /packet to open the menu.')
    
+    -- Отладка: выводим содержимое modeLabels для проверки
+    for i, label in ipairs(modeLabels) do
+        print(string.format('[Debug] modeLabels[%d] = %s', i - 1, label))
+    end
+   
     while true do
         wait(0)
         imgui.Process = showMenu[0]
@@ -54,41 +67,28 @@ function isPacketExcluded(id)
 end
 function to_utf8(str)
     if type(str) ~= 'string' then return str end
-    local success, result = pcall(u8.decode, str)
-    if success then
-        return result
-    else
-        return str
-    end
+    return u8:decode(str)
 end
 -- Функция для копирования данных пакета в буфер обмена
 function copyPacketToClipboard(packet)
-    local packetStr = to_utf8(string.format("Type: %s\nID: %d\nData (bytes): %s\nText: %s",
-        packet.type, packet.id, table.concat(packet.data, ', '), bytesToText(packet.data)))
-    local success = setClipboardText(packetStr)
-    if success then
-        print('[PacketAnalyzer] Скопирован пакет ID: ' .. packet.id)
-    else
-        print('[PacketAnalyzer] Ошибка копирования пакета ID: ' .. packet.id)
-    end
+    local packetStr = string.format("Type: %s\nID: %d\nData (bytes): %s\nText: %s",
+        packet.type, packet.id, table.concat(packet.data, ', '), bytesToText(packet.data))
+    sampSetClipboard(packetStr)
+    print('[PacketAnalyzer] Скопирован пакет ID: ' .. packet.id)
 end
 -- Функция для копирования всей таблицы в буфер обмена
 function copyAllPacketsToClipboard()
     local result = {}
     for _, packet in ipairs(packets) do
         if filterPacketId[0] == -1 or packet.id == filterPacketId[0] then
-            table.insert(result, to_utf8(string.format("Type: %s\nID: %d\nData (bytes): %s\nText: %s\n---",
-                packet.type, packet.id, table.concat(packet.data, ', '), bytesToText(packet.data))))
+            table.insert(result, string.format("Type: %s\nID: %d\nData (bytes): %s\nText: %s\n---",
+                packet.type, packet.id, table.concat(packet.data, ', '), bytesToText(packet.data)))
         end
     end
     local finalStr = table.concat(result, '\n')
     if finalStr ~= '' then
-        local success = setClipboardText(finalStr)
-        if success then
-            print('[PacketAnalyzer] Скопирована вся таблица')
-        else
-            print('[PacketAnalyzer] Ошибка копирования таблицы')
-        end
+        sampSetClipboard(finalStr)
+        print('[PacketAnalyzer] Скопирована вся таблица')
     else
         print('[PacketAnalyzer] Таблица пуста или не соответствует фильтру')
     end
@@ -141,27 +141,51 @@ imgui.OnFrame(
             imgui.SetColumnWidth(0, 300)
            
             imgui.Text(u8('Входящие пакеты'))
-            if not inActive[0] then
+            if imgui.BeginCombo(u8('Режим##inMode'), modeLabels[inMode[0] + 1]) then
+                for i, label in ipairs(modeLabels) do
+                    if imgui.Selectable(label, inMode[0] == i - 1) then
+                        inMode[0] = i - 1
+                    end
+                end
+                imgui.EndCombo()
+            end
+            if inMode[0] == 2 then
+                imgui.SetNextItemWidth(100)
+                imgui.InputInt(u8('ID пакета##inTarget'), inTargetPacketId)
+            end
+            if inMode[0] == 0 then
                 if imgui.Button(u8('Старт##inStart'), imgui.ImVec2(100, 30)) then
-                    inActive[0] = true
-                    print('[PacketAnalyzer] Входящие: Анализ включён')
+                    inMode[0] = 1
+                    print('[PacketAnalyzer] Входящие: Режим 1 - Все ID')
                 end
             else
                 if imgui.Button(u8('Стоп##inStop'), imgui.ImVec2(100, 30)) then
-                    inActive[0] = false
+                    inMode[0] = 0
                     print('[PacketAnalyzer] Входящие: Анализ отключён')
                 end
             end
            
             imgui.Text(u8('Исходящие пакеты'))
-            if not outActive[0] then
+            if imgui.BeginCombo(u8('Режим##outMode'), modeLabels[outMode[0] + 1]) then
+                for i, label in ipairs(modeLabels) do
+                    if imgui.Selectable(label, outMode[0] == i - 1) then
+                        outMode[0] = i - 1
+                    end
+                end
+                imgui.EndCombo()
+            end
+            if outMode[0] == 2 then
+                imgui.SetNextItemWidth(100)
+                imgui.InputInt(u8('ID пакета##outTarget'), outTargetPacketId)
+            end
+            if outMode[0] == 0 then
                 if imgui.Button(u8('Старт##outStart'), imgui.ImVec2(100, 30)) then
-                    outActive[0] = true
-                    print('[PacketAnalyzer] Исходящие: Анализ включён')
+                    outMode[0] = 1
+                    print('[PacketAnalyzer] Исходящие: Режим 1 - Все ID')
                 end
             else
                 if imgui.Button(u8('Стоп##outStop'), imgui.ImVec2(100, 30)) then
-                    outActive[0] = false
+                    outMode[0] = 0
                     print('[PacketAnalyzer] Исходящие: Анализ отключён')
                 end
             end
@@ -213,15 +237,17 @@ imgui.OnFrame(
             imgui.Separator()
            
             imgui.BeginChild('Packets', imgui.ImVec2(0, 0), true)
-            imgui.Columns(4, 'packetTable', true)
+            imgui.Columns(5, 'packetTable', true)
             imgui.SetColumnWidth(0, 150)
             imgui.SetColumnWidth(1, 80)
-            imgui.SetColumnWidth(2, 350)
-            imgui.SetColumnWidth(3, 350)
+            imgui.SetColumnWidth(2, 300)
+            imgui.SetColumnWidth(3, 300)
+            imgui.SetColumnWidth(4, 100)
             imgui.Text(u8('Тип пакета')) imgui.NextColumn()
             imgui.Text(u8('ID')) imgui.NextColumn()
             imgui.Text(u8('Данные (байты)')) imgui.NextColumn()
             imgui.Text(u8('Текст')) imgui.NextColumn()
+            imgui.Text(u8('Действие')) imgui.NextColumn()
             imgui.Separator()
            
             for i, packet in ipairs(packets) do
@@ -243,12 +269,12 @@ imgui.OnFrame(
                     end
                     imgui.NextColumn()
                     imgui.Text(tostring(packet.id)) imgui.NextColumn()
-                    local dataLabel = table.concat(packet.data, ', ') .. '##' .. i
-                    if imgui.Selectable(dataLabel, false) then
+                    imgui.TextWrapped(table.concat(packet.data, ', ')) imgui.NextColumn()
+                    imgui.TextWrapped(u8(bytesToText(packet.data))) imgui.NextColumn()
+                    if imgui.Button(u8('Копировать##copy' .. i), imgui.ImVec2(80, 20)) then
                         copyPacketToClipboard(packet)
                     end
                     imgui.NextColumn()
-                    imgui.TextWrapped(u8(bytesToText(packet.data))) imgui.NextColumn()
                     imgui.Separator()
                 end
             end
@@ -264,7 +290,7 @@ imgui.OnFrame(
     end
 )
 function onReceivePacket(id, bs)
-    if not inActive[0] or isPacketExcluded(id) then return true end
+    if inMode[0] == 0 or isPacketExcluded(id) then return true end
     local v = {}
     local byteCount = raknetBitStreamGetNumberOfBytesUsed(bs)
     for i = 1, byteCount do
@@ -272,18 +298,31 @@ function onReceivePacket(id, bs)
     end
     local packet = {type = 'Received Packet', id = id, data = v}
     table.insert(packets, packet)
-    print('[PacketAnalyzer] Received Packet ID: ' .. id .. ' Data (bytes): ' .. table.concat(v, ', ') .. ' Text: ' .. bytesToText(v))
-    if id == 223 and v[2] == 2 and v[3] == 3 then
-        local fuel = v[4]
-        print('[PacketAnalyzer] Fuel Value: ' .. fuel)
-    elseif id == 223 and v[2] == 5 then
-        local satiety = v[3]
-        print('[PacketAnalyzer] Satiety Value: ' .. satiety)
+    if inMode[0] == 1 then
+        print('[PacketAnalyzer] Received Packet ID: ' .. id)
+    elseif inMode[0] == 2 and id == inTargetPacketId[0] then
+        print('[PacketAnalyzer] Received Packet ID: ' .. id .. ' Data (bytes): ' .. table.concat(v, ', ') .. ' Text: ' .. bytesToText(v))
+        if id == 223 and v[2] == 2 and v[3] == 3 then
+            local fuel = v[4]
+            print('[PacketAnalyzer] Fuel Value: ' .. fuel)
+        elseif id == 223 and v[2] == 5 then
+            local satiety = v[3]
+            print('[PacketAnalyzer] Satiety Value: ' .. satiety)
+        end
+    elseif inMode[0] == 3 then
+        print('[PacketAnalyzer] Received Packet ID: ' .. id .. ' Data (bytes): ' .. table.concat(v, ', ') .. ' Text: ' .. bytesToText(v))
+        if id == 223 and v[2] == 2 and v[3] == 3 then
+            local fuel = v[4]
+            print('[PacketAnalyzer] Fuel Value: ' .. fuel)
+        elseif id == 223 and v[2] == 5 then
+            local satiety = v[3]
+            print('[PacketAnalyzer] Satiety Value: ' .. satiety)
+        end
     end
     return true
 end
 function onReceiveRpc(id, bs)
-    if not inActive[0] or isPacketExcluded(id) then return true end
+    if inMode[0] == 0 or isPacketExcluded(id) then return true end
     local v = {}
     local byteCount = raknetBitStreamGetNumberOfBytesUsed(bs)
     for i = 1, byteCount do
@@ -291,11 +330,17 @@ function onReceiveRpc(id, bs)
     end
     local packet = {type = 'Received RPC', id = id, data = v}
     table.insert(packets, packet)
-    print('[PacketAnalyzer] Received RPC ID: ' .. id .. ' Data (bytes): ' .. table.concat(v, ', ') .. ' Text: ' .. bytesToText(v))
+    if inMode[0] == 1 then
+        print('[PacketAnalyzer] Received RPC ID: ' .. id)
+    elseif inMode[0] == 2 and id == inTargetPacketId[0] then
+        print('[PacketAnalyzer] Received RPC ID: ' .. id .. ' Data (bytes): ' .. table.concat(v, ', ') .. ' Text: ' .. bytesToText(v))
+    elseif inMode[0] == 3 then
+        print('[PacketAnalyzer] Received RPC ID: ' .. id .. ' Data (bytes): ' .. table.concat(v, ', ') .. ' Text: ' .. bytesToText(v))
+    end
     return true
 end
 function onSendPacket(id, bs)
-    if not outActive[0] or isPacketExcluded(id) then return true end
+    if outMode[0] == 0 or isPacketExcluded(id) then return true end
     local v = {}
     local byteCount = raknetBitStreamGetNumberOfBytesUsed(bs)
     for i = 1, byteCount do
@@ -303,11 +348,17 @@ function onSendPacket(id, bs)
     end
     local packet = {type = 'Sent Packet', id = id, data = v}
     table.insert(packets, packet)
-    print('[PacketAnalyzer] Sent Packet ID: ' .. id .. ' Data (bytes): ' .. table.concat(v, ', ') .. ' Text: ' .. bytesToText(v))
+    if outMode[0] == 1 then
+        print('[PacketAnalyzer] Sent Packet ID: ' .. id)
+    elseif outMode[0] == 2 and id == outTargetPacketId[0] then
+        print('[PacketAnalyzer] Sent Packet ID: ' .. id .. ' Data (bytes): ' .. table.concat(v, ', ') .. ' Text: ' .. bytesToText(v))
+    elseif outMode[0] == 3 then
+        print('[PacketAnalyzer] Sent Packet ID: ' .. id .. ' Data (bytes): ' .. table.concat(v, ', ') .. ' Text: ' .. bytesToText(v))
+    end
     return true
 end
 function onSendRpc(id, bs)
-    if not outActive[0] or isPacketExcluded(id) then return true end
+    if outMode[0] == 0 or isPacketExcluded(id) then return true end
     local v = {}
     local byteCount = raknetBitStreamGetNumberOfBytesUsed(bs)
     for i = 1, byteCount do
@@ -315,6 +366,12 @@ function onSendRpc(id, bs)
     end
     local packet = {type = 'Sent RPC', id = id, data = v}
     table.insert(packets, packet)
-    print('[PacketAnalyzer] Sent RPC ID: ' .. id .. ' Data (bytes): ' .. table.concat(v, ', ') .. ' Text: ' .. bytesToText(v))
+    if outMode[0] == 1 then
+        print('[PacketAnalyzer] Sent RPC ID: ' .. id)
+    elseif outMode[0] == 2 and id == outTargetPacketId[0] then
+        print('[PacketAnalyzer] Sent RPC ID: ' .. id .. ' Data (bytes): ' .. table.concat(v, ', ') .. ' Text: ' .. bytesToText(v))
+    elseif outMode[0] == 3 then
+        print('[PacketAnalyzer] Sent RPC ID: ' .. id .. ' Data (bytes): ' .. table.concat(v, ', ') .. ' Text: ' .. bytesToText(v))
+    end
     return true
 end
