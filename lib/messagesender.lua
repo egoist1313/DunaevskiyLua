@@ -94,7 +94,7 @@ function MessageSender:sendChatWithDelay(command, interval)
     print("[MessageSender] Sent: " .. command)  -- отладка
 end
 
-function samp.onServerMessage(color, text)
+function sampev.onServerMessage(color, text)
     local cleanText = text:gsub("{[0-9A-Fa-f]+}", "")
     if cleanText:find("Не флуди!") then
         print("[MessageSender] Flood detected, retrying burst...")
