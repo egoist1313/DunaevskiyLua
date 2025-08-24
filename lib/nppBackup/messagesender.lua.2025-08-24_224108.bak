@@ -1,4 +1,4 @@
-local sampev = require 'lib.samp.events'
+local samp = require 'lib.samp.events'
 
 local MessageSender = {
     messageQueue = {},
