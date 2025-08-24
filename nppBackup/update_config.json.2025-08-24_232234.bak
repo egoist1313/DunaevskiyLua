@@ -17,7 +17,7 @@
 	{"name": "VoskBladwin.exe", "version": "1.0.0", "path": "LuaDunaevskiy/VoskBladwin.exe", "run_after_download": true, "description": "Приложение для голосового управления"}
   ],
   "libraries": [
-    {"name": "messagesender.lua", "version": "1.2.2", "path": "lib/messagesender.lua", "description": "Библиотека для антифлуда"},
+    {"name": "messagesender.lua", "version": "1.0.2", "path": "lib/messagesender.lua", "description": "Библиотека для антифлуда"},
 	{"name": "hooks.lua", "version": "1.0.1", "path": "lib/hooks.lua", "description": "Библиотека от RTD vmt+jmp/call hook"}
   ]
 }
