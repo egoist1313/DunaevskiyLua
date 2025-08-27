@@ -31,7 +31,7 @@
     },
     {
       "name": "kmenu.luac",
-      "version": "1.2.9",
+      "version": "1.1.9",
       "path": "LuaDunaevskiy/kmenu.luac",
       "description": "Скрипт для похищений",
       "command": "/kmenu"
