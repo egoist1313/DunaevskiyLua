@@ -1,6 +1,6 @@
-script_name('TeleportToObject')
-script_author('YourName')
-script_version('1.0')
+local script_name = 'TeleportToObject'
+local script_author = 'Alex_Swift'
+local script_version = '2.0.0'
 
 require "lib.moonloader"
 require "lib.sampfuncs"
