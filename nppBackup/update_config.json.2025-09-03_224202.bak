@@ -10,7 +10,7 @@
     {"name": "voskDun.luac", "version": "3.4", "path": "LuaDunaevskiy/voskDun.luac", "description": "Голос в текст", "command": "/vosk"},
 	{"name": "Speedometer.luac", "version": "2.5", "path": "LuaDunaevskiy/Speedometer.luac", "description": "Модифицированный спидометр от Cosmo", "command": "/speedometer"},
 	{"name": "pogoda.luac", "version": "2.6", "path": "LuaDunaevskiy/pogoda.luac", "description": "Управление временем и погодой", "command": "/den"},
-	{"name": "update_updater.lua", "version": "1.3", "path": "/update_updater.lua", "description": "Обновление", "command": ""},
+	{"name": "update_updater.lua", "version": "1.2", "path": "/update_updater.lua", "description": "Обновление", "command": ""},
   ],
   "files": [
 	{"name": "object_markers.txt", "version": "1.0.1", "path": "LuaDunaevskiy/object_markers.txt", "run_after_download": false, "description": "Метки для карты охотника"},
