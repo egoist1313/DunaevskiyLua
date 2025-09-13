@@ -137,7 +137,7 @@
   ],
   "rubin": [
     {
-      "name": "mafia-tools.lua",
+      "name": "mafia-tools.luac",
       "version": "05.07.2025",
       "path": "LuaDunaevskiy/Rubin/mafia-tools.lua",
       "url": "https://git.deadpoo.net/rubin/mafia-tools/raw/branch/master/mafia-tools.lua",
@@ -146,7 +146,7 @@
       "command": "/maf"
     },
     {
-      "name": "auto-ad.lua",
+      "name": "auto-ad.luac",
       "version": "30.06.2023",
       "path": "LuaDunaevskiy/Rubin/auto-ad.lua",
       "url": "https://git.deadpoo.net/rubin/auto-ad/raw/branch/master/auto-ad.lua",
@@ -155,7 +155,7 @@
       "command": "/aad"
     },
     {
-      "name": "drugs-mats.lua",
+      "name": "drugs-mats.luac",
       "version": "1.0.0",
       "path": "LuaDunaevskiy/Rubin/drugs-mats.lua",
       "url": "https://git.deadpoo.net/rubin/drugs-mats/raw/branch/master/drugs-mats.lua",
@@ -164,7 +164,7 @@
       "command": "/usedrugs menu"
     },
     {
-      "name": "xmas-clicker.lua",
+      "name": "xmas-clicker.luac",
       "version": "1.0.0",
       "path": "LuaDunaevskiy/Rubin/xmas-clicker.lua",
       "url": "https://git.deadpoo.net/rubin/xmas-clicker/raw/branch/master/xmas-clicker.lua",
@@ -173,7 +173,7 @@
       "command": "/xmas 100"
     },
     {
-      "name": "squad-mats.lua",
+      "name": "squad-mats.luac",
       "version": "18.02.2023",
       "path": "LuaDunaevskiy/Rubin/squad-mats.lua",
       "url": "https://git.deadpoo.net/rubin/squad-mats/raw/branch/master/squad-mats.lua",
@@ -182,7 +182,7 @@
       "command": "/squadid"
     },
     {
-      "name": "WheelFortune.lua",
+      "name": "WheelFortune.luac",
       "version": "30.08.2023",
       "path": "LuaDunaevskiy/Rubin/WheelFortune.lua",
       "url": "https://git.deadpoo.net/rubin/WheelFortune/raw/branch/master/WheelFortune.lua",
@@ -191,7 +191,7 @@
       "command": "/fortune_clear"
     },
     {
-      "name": "set-id.lua",
+      "name": "set-id.luac",
       "version": "28.01.2024",
       "path": "LuaDunaevskiy/Rubin/set-id.lua",
       "url": "https://git.deadpoo.net/rubin/set-id/raw/branch/master/set-id.lua",
@@ -200,7 +200,7 @@
       "command": "/setid"
     },
     {
-      "name": "ProdHUD.lua",
+      "name": "ProdHUD.luac",
       "version": "23.11.2024",
       "path": "LuaDunaevskiy/Rubin/ProdHUD.lua",
       "url": "https://git.deadpoo.net/rubin/ProdHUD/raw/branch/master/ProdHUD.lua",
@@ -209,7 +209,7 @@
       "command": ""
     },
     {
-      "name": "TaxiHUD.lua",
+      "name": "TaxiHUD.luac",
       "version": "1.0.0",
       "path": "LuaDunaevskiy/Rubin/TaxiHUD.lua",
       "url": "https://git.deadpoo.net/rubin/TaxiHUD/raw/branch/master/TaxiHUD.lua",
@@ -218,7 +218,7 @@
       "command": "/taxi"
     },
     {
-      "name": "TruckHUD.lua",
+      "name": "TruckHUD.luac",
       "version": "14.06.2023",
       "path": "LuaDunaevskiy/Rubin/TruckHUD.lua",
       "url": "https://git.deadpoo.net/rubin/TruckHUD/raw/branch/master/TruckHUD.lua",
@@ -227,7 +227,7 @@
       "command": ""
     },
     {
-      "name": "srp-theft-tools.lua",
+      "name": "srp-theft-tools.luac",
       "version": "25.11.2023",
       "path": "LuaDunaevskiy/Rubin/srp-theft-tools.lua",
       "url": "https://git.deadpoo.net/rubin/srp-theft-tools/raw/branch/master/srp-theft-tools.lua",
@@ -236,7 +236,7 @@
       "command": ""
     },
     {
-      "name": "corn-hud.lua",
+      "name": "corn-hud.luac",
       "version": "30.06.2023",
       "path": "LuaDunaevskiy/Rubin/corn-hud.lua",
       "url": "https://git.deadpoo.net/rubin/corn-hud/raw/branch/master/corn-hud.lua",
@@ -245,7 +245,7 @@
       "command": "/corn"
     },
     {
-      "name": "hallowen-door-cracker.lua",
+      "name": "hallowen-door-cracker.luac",
       "version": "1.0.0",
       "path": "LuaDunaevskiy/Rubin/hallowen-door-cracker.lua",
       "url": "https://git.deadpoo.net/rubin/hallowen-door-cracker/raw/branch/master/hallowen-door-cracker.lua",
@@ -254,7 +254,7 @@
       "command": "/hdoor"
     },
     {
-      "name": "graffiti-srp.lua",
+      "name": "graffiti-srp.luac",
       "version": "1.0.0",
       "path": "LuaDunaevskiy/Rubin/graffiti-srp.lua",
       "url": "https://git.deadpoo.net/rubin/graffiti-srp/raw/branch/master/graffiti-srp.lua",
