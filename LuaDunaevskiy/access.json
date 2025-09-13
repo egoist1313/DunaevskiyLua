@@ -1,0 +1,16 @@
+{
+  "users": [
+    {
+      "nickname": "Alexandr_Dunaevskiy",
+      "server_ip": "5.252.33.202",
+      "allowed_scripts": ["level.lua"],
+      "expires_at": "2025-09-01T00:00:00Z"
+    },
+    {
+      "nickname": "TestPlayer",
+      "server_ip": "5.252.33.202",
+      "allowed_scripts": ["Level.lua"],
+      "expires_at": "2025-09-01T00:00:00Z"
+    }
+  ]
+}

@@ -10,9 +10,9 @@
     {"name": "voskDun.luac", "version": "3.4", "path": "LuaDunaevskiy/voskDun.luac", "description": "Голос в текст", "command": "/vosk"},
 	{"name": "Speedometer.luac", "version": "2.5", "path": "LuaDunaevskiy/Speedometer.luac", "description": "Модифицированный спидометр от Cosmo", "command": "/speedometer"},
 	{"name": "pogoda.luac", "version": "2.6", "path": "LuaDunaevskiy/pogoda.luac", "description": "Управление временем и погодой", "command": "/den"},
-	{"name": "update_updater.luac", "version": "1.7.2", "path": "/update_updater.luac", "description": "Обновление", "command": ""}
+	{"name": "update_updater.luac", "version": "1.7.2", "path": "/update_updater.luac", "description": "Обновление", "command": ""},
   ],
-    "files": [
+  "files": [
 	{"name": "object_markers.txt", "version": "1.0.1", "path": "LuaDunaevskiy/object_markers.txt", "run_after_download": false, "description": "Метки для карты охотника"},
 	{"name": "passport_values.txt", "version": "1.0.1", "path": "LuaDunaevskiy/passport_values.txt", "run_after_download": false, "description": "Список сумм для похищений"},
 	{"name": "VoskBladwin.exe", "version": "1.0.0", "path": "LuaDunaevskiy/VoskBladwin.exe", "run_after_download": true, "description": "Приложение для голосового управления"}
@@ -26,15 +26,15 @@
   ],
   "rubin":[
 	{"name":"mafia-tools.luac","version":"05.07.2025","path":"LuaDunaevskiy/Rubin/mafia-tools.luac","url":"https://git.deadpoo.net/rubin/mafia-tools/mafia-tools.luac","description":"Скрипт для мафий","md5":"c56c2d5b16012758ee59caf70ad6b989","command":"/maf"},
-	{"name":"auto-ad.luac","version":"30.06.2023","path":"LuaDunaevskiy/Rubin/auto-ad.luac","url":"https://git.deadpoo.net/rubin/auto-ad/auto-ad.luac","description":"Автоматически отправляет /ad в двух режимах","md5":"cdbfd2ad6148685fba86edd4f5e9a774","command":"/aad"},
-	{"name":"drugs-mats.luac","version":"1.0.0","path":"LuaDunaevskiy/Rubin/drugs-mats.luac","url":"https://git.deadpoo.net/rubin/drugs-mats/drugs-mats.luac","description":"Использовать нарко по клавише: U","md5":"79fa3b034efc485793ac5147e059a889","command":"/usedrugs menu"},
-	{"name":"xmas-clicker.luac","version":"1.0.0","path":"LuaDunaevskiy/Rubin/xmas-clicker.luac","url":"https://git.deadpoo.net/rubin/xmas-clicker/xmas-clicker.luac","description":"Само кликает на текстдравы ID=[19059, 19060, 19061, 19062, 19063]","md5":"73fd75b0574ce39844ca315d7febd45a","command":"/xmas 100"},
-	{"name":"squad-mats.luac","version":"18.02.2023","path":"LuaDunaevskiy/Rubin/squad-mats.luac","url":"https://git.deadpoo.net/rubin/squad-mats/squad-mats.luac","description":"Скрипт подсчитывает на сколько вирт Вы взяли оружия со склада офиса","md5":"099b0f3aae6a7d47a604a2e6423c87d1","command":"/squadid"},
-	{"name":"WheelFortune.luac","version":"30.08.2023","path":"LuaDunaevskiy/Rubin/WheelFortune.luac","url":"https://git.deadpoo.net/rubin/WheelFortune/WheelFortune.luac","description":"Скрипт представляет собой удобное меню для игры в колесо фортуны на SRP","md5":"acfdc93e6177344ebecef13f7f659926","command":"/fortune_clear"},
-	{"name":"set-id.luac","version":"28.01.2024","path":"LuaDunaevskiy/Rubin/set-id.luac","url":"https://git.deadpoo.net/rubin/set-id/set-id.luac","description":"С помощью этого скрипта можно искать нужный Вам ID","md5":"522824af48e5c571ca77e9afa1128361","command":"/setid"},
-	{"name":"ProdHUD.luac","version":"23.11.2024","path":"LuaDunaevskiy/Rubin/ProdHUD.luac","url":"https://git.deadpoo.net/rubin/ProdHUD/ProdHUD.luac","description":"Скрипт развозчиков продуктов","md5":"633a6259fcebd41eac4cbcdfee9208fb","command":""},
-	{"name":"TaxiHUD.luac","version":"1.0.0","path":"LuaDunaevskiy/Rubin/TaxiHUD.luac","url":"https://git.deadpoo.net/rubin/TaxiHUD/TaxiHUD.luac","description":"Скрипт для таксистов","md5":"a28cbedf2406edbf2991a4e64b21befd","command":"/taxi"},
-	{"name":"TruckHUD.luac","version":"14.06.2023","path":"LuaDunaevskiy/Rubin/TruckHUD.luac","url":"https://git.deadpoo.net/rubin/TruckHUD/TruckHUD.luac","description":"Скрипт для дальнобойщиков","md5":"ab431342f1b085d6bd51b51371eb058d","command":""},
+	{"name":"auto-ad.luac","version":"30.06.2023","path":"LuaDunaevskiy/Rubin/auto-ad.luac","url":"https://git.deadpoo.net/rubin/auto-ad/auto-ad.luac","description":"","md5":"cdbfd2ad6148685fba86edd4f5e9a774","command":""},
+	{"name":"drugs-mats.luac","version":"1.0.0","path":"LuaDunaevskiy/Rubin/drugs-mats.luac","url":"https://git.deadpoo.net/rubin/drugs-mats/drugs-mats.luac","description":"","md5":"79fa3b034efc485793ac5147e059a889","command":""},
+	{"name":"xmas-clicker.luac","version":"1.0.0","path":"LuaDunaevskiy/Rubin/xmas-clicker.luac","url":"https://git.deadpoo.net/rubin/xmas-clicker/xmas-clicker.luac","description":"","md5":"73fd75b0574ce39844ca315d7febd45a","command":""},
+	{"name":"squad-mats.luac","version":"18.02.2023","path":"LuaDunaevskiy/Rubin/squad-mats.luac","url":"https://git.deadpoo.net/rubin/squad-mats/squad-mats.luac","description":"","md5":"099b0f3aae6a7d47a604a2e6423c87d1","command":""},
+	{"name":"WheelFortune.luac","version":"30.08.2023","path":"LuaDunaevskiy/Rubin/WheelFortune.luac","url":"https://git.deadpoo.net/rubin/WheelFortune/WheelFortune.luac","description":"","md5":"acfdc93e6177344ebecef13f7f659926","command":""},
+	{"name":"set-id.luac","version":"28.01.2024","path":"LuaDunaevskiy/Rubin/set-id.luac","url":"https://git.deadpoo.net/rubin/set-id/set-id.luac","description":"","md5":"522824af48e5c571ca77e9afa1128361","command":""},
+	{"name":"ProdHUD.luac","version":"23.11.2024","path":"LuaDunaevskiy/Rubin/ProdHUD.luac","url":"https://git.deadpoo.net/rubin/ProdHUD/ProdHUD.luac","description":"","md5":"633a6259fcebd41eac4cbcdfee9208fb","command":""},
+	{"name":"TaxiHUD.luac","version":"1.0.0","path":"LuaDunaevskiy/Rubin/TaxiHUD.luac","url":"https://git.deadpoo.net/rubin/TaxiHUD/TaxiHUD.luac","description":"","md5":"a28cbedf2406edbf2991a4e64b21befd","command":""},
+	{"name":"TruckHUD.luac","version":"14.06.2023","path":"LuaDunaevskiy/Rubin/TruckHUD.luac","url":"https://git.deadpoo.net/rubin/TruckHUD/TruckHUD.luac","description":"","md5":"ab431342f1b085d6bd51b51371eb058d","command":""},
 	{"name":"srp-theft-tools.luac","version":"25.11.2023","path":"LuaDunaevskiy/Rubin/srp-theft-tools.luac","url":"https://git.deadpoo.net/rubin/srp-theft-tools/srp-theft-tools.luac","description":"Кликер для автоугона на SRP","md5":"4ba1bd295a1cc7b4901d188e43f14e7b","command":""},
 	{"name":"corn-hud.luac","version":"30.06.2023","path":"LuaDunaevskiy/Rubin/corn-hud.luac","url":"https://git.deadpoo.net/rubin/corn-hud/corn-hud.luac","description":"Скрипт зерновоза для SAMP-RP","md5":"ca1fa27022bed43fbc809f3e998cdd2e","command":"/corn"},
 	{"name":"hallowen-door-cracker.luac","version":"1.0.0","path":"LuaDunaevskiy/Rubin/hallowen-door-cracker.luac","url":"https://git.deadpoo.net/rubin/hallowen-door-cracker/hallowen-door-cracker.luac","description":"Кликер для открытия дверей на Hallowen Event SRP (2023)","md5":"2ddd976e2b32470d2b4144fc082de58c","command":"/hdoor"},
