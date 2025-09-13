@@ -5,7 +5,7 @@
       "version": "1.1.6",
       "path": "LuaDunaevskiy/cook.luac",
       "description": "Автоматизация приготовления еды в игре",
-      "command": "/cook [19]",
+      "command": "/cook 0-19",
       "md5": "f3c5506309d00dbcfb1c172b35318737"
     },
     {
