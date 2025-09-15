@@ -1,6 +1,7 @@
-local script_name = 'hallowen-door-cracker'
-local script_author = 'Serhiy_Rubin'
-local script_version = '31.10.2023'
+script_name("hallowen-door-cracker")
+script_author("Serhiy_Rubin")
+script_version("31.10.2023")
+
 function main()
     if not isSampLoaded() or not isSampfuncsLoaded() then return end
     while not isSampAvailable() do wait(0) end

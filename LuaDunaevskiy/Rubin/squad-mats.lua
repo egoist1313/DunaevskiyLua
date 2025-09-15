@@ -1,6 +1,6 @@
-script_name('squad-mats')
-script_author("Serhiy_Rubin")
-script_version("18.02.2023")
+local script_name = 'squad-mats'
+local script_author = 'Serhiy_Rubin'
+local script_version = '18.02.2023'
 sampev = require 'samp.events'
 inicfg = require "inicfg"
 dlstatus = require("moonloader").download_status

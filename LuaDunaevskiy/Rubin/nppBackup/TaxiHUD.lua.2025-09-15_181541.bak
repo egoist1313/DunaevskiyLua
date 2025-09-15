@@ -1,6 +1,7 @@
-local script_name = 'TaxiHUD'
-local script_author = 'Serhiy_Rubin'
-local script_version = '21.01.03.1'
+script_name('TaxiHUD')
+script_author("Serhiy_Rubin")
+script_version("21.01.03.1")
+
 function try(f, catch_f)
   local status, exception = pcall(f)
   if not status then

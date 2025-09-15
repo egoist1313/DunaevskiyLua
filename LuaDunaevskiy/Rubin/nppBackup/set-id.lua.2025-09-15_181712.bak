@@ -1,6 +1,7 @@
-local script_name = 'set-id'
-local script_author = 'Serhiy_Rubin'
-local script_version = '28.01.2024'
+script_name("set-id")
+script_author("Serhiy_Rubin")
+script_version("28.01.2024")
+
 require 'lib.moonloader'
 require 'lib.sampfuncs'
 

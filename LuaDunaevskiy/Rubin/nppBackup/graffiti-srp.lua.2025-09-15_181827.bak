@@ -1,6 +1,5 @@
-local script_name = 'graffiti-srp'
-local script_author = 'Serhiy_Rubin'
-local script_version = '1.00'
+script_name('graffiti-srp')
+script_author("Serhiy_Rubin")
 script_properties("work-in-pause")
 local inicfg = require 'inicfg'
 local samp = require 'samp.events'

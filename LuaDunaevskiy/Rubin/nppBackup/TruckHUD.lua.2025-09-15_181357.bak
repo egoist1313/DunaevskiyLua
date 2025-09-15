@@ -1,6 +1,7 @@
-local script_name = 'TruckHUD'
-local script_author = 'Serhiy_Rubin'
-local script_version = '14.06.2023'
+script_name("TruckHUD")
+script_author("Serhiy_Rubin")
+script_version("14.06.2023")
+
 local inicfg = require "inicfg"
 local dlstatus = require("moonloader").download_status
 local vkeys = require "lib.vkeys"

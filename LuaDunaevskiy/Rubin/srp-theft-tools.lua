@@ -1,6 +1,6 @@
-script_name("srp-theft-tools")
-script_author("RuBin")
-script_version("25.11.2023")
+local script_name = 'srp-theft-tools'
+local script_author = 'Serhiy_Rubin'
+local script_version = '25.11.2023'
 local sampev = require("samp.events")
 local inicfg = require "inicfg"
 local dlstatus = require("moonloader").download_status

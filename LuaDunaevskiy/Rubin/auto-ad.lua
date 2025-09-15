@@ -1,6 +1,6 @@
-script_name("auto-ad")
-script_author("Serhiy_Rubin")
-script_version("30.06.2023")
+local script_name = 'auto-ad'
+local script_author = 'Serhiy_Rubin'
+local script_version = '30.06.2023'
 sampev = require("samp.events")
 inicfg = require "inicfg"
 dlstatus = require("moonloader").download_status

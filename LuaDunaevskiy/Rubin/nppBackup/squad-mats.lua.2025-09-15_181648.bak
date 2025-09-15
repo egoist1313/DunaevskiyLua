@@ -1,284 +1,170 @@
-local script_name = 'WheelFortune'
-local script_author = 'Serhiy_Rubin'
-local script_version = '30.08.2023'
-require 'lib.sampfuncs'
-require 'lib.moonloader'
-local sampev = require 'lib.samp.events'
-local inicfg = require 'inicfg'
-local dlstatus = require("moonloader").download_status
-local bet, stavka = 0, 0
-local wheel = {
-	['  [Wheel 1000-10000] '] = {x = 2271.682373, y = 1584.642212, z = 1006.176208 },
-	['  [Wheel 2000-20000] '] = {x = 2261.659180, y = 1584.642090, z = 1006.176453 },
-	['  [Wheel 3000-30000] '] = {x = 2251.997559, y = 1584.642090, z = 1006.176453 },
-	['  [Wheеl 1000-10000] '] = {x = 1943.601318, y = 986.384949, z = 992.474487 },
-	['  [Wheеl 2000-20000] '] = {x = 1940.732666, y = 989.606995, z = 992.460938 },
-	['  [Wheеl 3000-30000] '] = {x = 1937.847778, y = 986.565613, z = 992.474487 },
-}
-local multiplier, cost, mouse, gamer, plus = 2, 3000, false, 0, 100000
-local auto, mode1, bet, stavka_me  = 0, 0, 0, 0
-local text_stats = { ['0'] = ' Без тактики', ['1'] = ' Тактика: Цель', ['2'] = ' Тактика: +1000' }
+script_name('squad-mats')
+script_author("Serhiy_Rubin")
+script_version("18.02.2023")
+sampev = require 'samp.events'
+inicfg = require "inicfg"
+dlstatus = require("moonloader").download_status
 
 function main()
 	if not isSampLoaded() or not isSampfuncsLoaded() then return end
 	while not isSampAvailable() do wait(0) end
-	lua_thread.create(script_update.main)
-	repeat
-		wait(0)
-		_, my_id = sampGetPlayerIdByCharHandle(PLAYER_PED)
-		my_name = sampGetPlayerNickname(my_id)
-		if _ then score = sampGetPlayerScore(my_id) end
-	until score > 0
-	local magicChar = { ":", "|" }
-	local server = getSampRpServerName()
+    lua_thread.create(script_update.main)
+    repeat wait(0) until sampGetCurrentServerName() ~= "SA-MP"
+    repeat wait(0) until sampGetCurrentServerName():find("Samp%-Rp.Ru") or sampGetCurrentServerName():find("SRP")
+    local server = getSampRpServerName()
     if server == "" then
         thisScript():unload()
     end
-	local posX, posY = convertGameScreenCoordsToWindowScreenCoords(500.0, 240.0)
-	iniKey = my_name..'-'..server
-	ini = inicfg.load({
-		profit = {
-			[iniKey] = 0,
-		},
-		settings = {
-			posX = posX,
-			posY = posY,
-		},
-		font = {
-			name = 'Segoe UI',
-			size = 10,
-			flag = 13,
-		}
-	}, thisScript().name)
-	inicfg.save(ini, thisScript().name)
-	font = renderCreateFont(ini.font.name, ini.font.size, ini.font.flag)
-	sampRegisterChatCommand('fortune_clear', function()
-		ini.profit[iniKey] = 0
-		mode1 = 0
-		inicfg.save(ini, thisScript().name)
-		end)
-	while true do
-		wait(0)
-		local casino = false
-		for k,v in pairs(wheel) do
-			local dist = math.floor(getDistanceBetweenCoords3d(v.x, v.y, v.z, getCharCoordinates(playerPed)))
-			local x, y = convert3DCoordsToScreen(v.x, v.y, v.z)
-			if dist <= 1 then
-				casino = true
-				if wasKeyPressed(VK_RBUTTON) then
-					mouse = not mouse
-					sampSetCursorMode((mouse and 0 or 3))
-				end
-				local posX, posY = convertGameScreenCoordsToWindowScreenCoords(500.0, 240.0)
-				local down = (renderGetFontDrawHeight(font) + (renderGetFontDrawHeight(font) / 15))
-				renderDrawBox(posX, posY, renderGetFontDrawTextLength(font, k) + 3, renderGetFontDrawHeight(font), 0x90000000)
-				local string = k
-				false0_move1_click2(string, posX, posY)
-				posY = posY + down
-				renderDrawBox(posX, posY, renderGetFontDrawTextLength(font, k) + 3, renderGetFontDrawHeight(font), 0x90000000)
-				local string = string.format(' Множитель: %d', multiplier)
-				if false0_move1_click2(string, posX, posY) == 1 then
-					local delta = getMousewheelDelta()
-					if delta ~= 0 then
-						if delta > 0 then -- Плюс
-							multiplier = (multiplier == 2 and 4 or (multiplier == 4 and 8 or (multiplier == 8 and 16 or (multiplier == 16 and 32 or (multiplier == 32 and 32 or 2)))))
-						else -- Минус
-							multiplier = (multiplier == 2 and 2 or (multiplier == 4 and 2 or (multiplier == 8 and 4 or (multiplier == 16 and 8 or (multiplier == 32 and 16 or 2)))))
-						end
-					end
-				end
-				posY = posY + down
-				renderDrawBox(posX, posY, renderGetFontDrawTextLength(font, k) + 3, renderGetFontDrawHeight(font), 0x90000000)
-				min, max = k:match('(%d+)-(%d+)')
-				if cost < tonumber(min) then cost = tonumber(min) end
-				if cost > tonumber(max) then cost = tonumber(max) end
-				if auto == 1 and cost < (mode1 + plus + tonumber(cost)) / tonumber(multiplier) then
-					local S1 = (mode1 + plus + tonumber(cost)) / tonumber(multiplier)
-					if S1 <= tonumber(max) then
-						cost = S1
-					end
-				end
-				local string = string.format(' Ставка: %d', cost)
-				if false0_move1_click2(string, posX, posY) == 1 and sampIsCursorActive() then
-					local delta = getMousewheelDelta()
-					if delta ~= 0 then
-						if delta > 0 then -- Плюс
-							if cost < tonumber(max) then
-								cost = cost + 1000
-							end
-						else -- Минус
-							if cost > tonumber(min) then
-								cost = cost - 1000
-							end
-						end
-					end
-				end
-				posY = posY + down
-				renderDrawBox(posX, posY, renderGetFontDrawTextLength(font, k) + 3, renderGetFontDrawHeight(font), 0x90000000)
-				local string = string.format(' Приз: %d$', tonumber(cost) * tonumber(multiplier))
-				false0_move1_click2(string, posX, posY)
-				posY = posY + down
-				renderDrawBox(posX, posY, renderGetFontDrawTextLength(font, k) + 3, renderGetFontDrawHeight(font), 0x90000000)
-				local string = string.format(' Общая прибыль: %d$', ini.profit[iniKey])
-				false0_move1_click2(string, posX, posY)
-				posY = posY + down
-				renderDrawBox(posX, posY, renderGetFontDrawTextLength(font, k) + 3, renderGetFontDrawHeight(font), 0x90000000)
-				if false0_move1_click2(text_stats[tostring(auto)], posX, posY) == 1 then
-					local delta = getMousewheelDelta()
-					if delta ~= 0 then
-						if delta > 0 then
-							auto = (auto == 0 and 1 or (auto == 1 and 2 or (auto == 2 and 0 or 0)))
-						else
-							auto = (auto == 2 and 1 or (auto == 1 and 0 or (auto == 0 and 2 or 2)))
-						end
-					end
-				end
-				if auto ~= 0 then
-					if auto == 1 then
-						posY = posY + down
-						renderDrawBox(posX, posY, renderGetFontDrawTextLength(font, k) + 3, renderGetFontDrawHeight(font), 0x90000000)
-						local string = string.format(' Цель: %d$', plus)
-						if false0_move1_click2(string, posX, posY) == 1 and sampIsCursorActive() then
-							local delta = getMousewheelDelta()
-							if delta ~= 0 then
-								if delta > 0 then -- Плюс
-									plus = plus + 1000
-								else -- Минус
-									plus = plus - 1000
-								end
-							end
-						end
-					end
-					posY = posY + down
-					renderDrawBox(posX, posY, renderGetFontDrawTextLength(font, k) + 3, renderGetFontDrawHeight(font), 0x90000000)
-					local string = string.format(' Потрачено: -%d$', mode1)
-					false0_move1_click2(string, posX, posY)
-					posY = posY + down
-					renderDrawBox(posX, posY, renderGetFontDrawTextLength(font, k) + 3, renderGetFontDrawHeight(font), 0x90000000)
-					if false0_move1_click2('List', (posX + (renderGetFontDrawTextLength(font, k) / 2) - (renderGetFontDrawTextLength(font, 'List') / 2)), posY - 1) == 2 then
-						local mnoj, stavk, cel_ = multiplier, cost, plus
-						local trat, kolvo = 0, 0
-						local text = '[#] Ставка\tПотрачено\tПриз\tПрофит\n'
-						repeat
-							kolvo = kolvo + 1
-							trat = trat + stavk
-							priz = stavk * tonumber(mnoj)
-							vine = math.ceil(priz - trat)
-							text = string.format('%s[%d] %d\t%d\t%d\t%d\n', text, kolvo, stavk, trat, priz, vine)
-							if auto == 2 then
-								stavk = tonumber(stavk) + 1000
-							else
-								stavk = (trat + plus + tonumber(stavk)) / tonumber(mnoj)
-							end
-						until stavk >= 30000 or vine < 0
-						sampShowDialog(5, (auto == 1 and 'Цель '..plus or 'List'), text, 'Enter', 'Close', 5)
-					end
-				end
-				posY = posY + down
-				posY = posY + down
-				renderDrawBox(posX, posY, renderGetFontDrawTextLength(font, k) + 3, renderGetFontDrawHeight(font), 0x90000000)
-				if false0_move1_click2('Start', (posX + (renderGetFontDrawTextLength(font, k) / 2) - (renderGetFontDrawTextLength(font, 'Start') / 2)), posY - 1) == 2 then
-					gamer = 1
-					sendKey(16)
-				end
-			end
-		end
-		if mouse and not casino then
-			sampSetCursorMode(0)
-			mouse = false
-		end
-	end
+    config.init()
+    sampRegisterChatCommand("squadid",function(para)
+        if para:find("%d+") then
+            config.data.squad_id = tonumber(para:match("(%d+)"))
+            config.save(config.data)
+            addChatMessage("Установлен новый ID сквада: "..config.data.squad_id)
+        end
+    end)
+    wait(-1)
 end
 
+-->> CONFIG
+config = {}
+config.data = {}
+local x1, y1 = convertGameScreenCoordsToWindowScreenCoords(14, 310)
+config.default = {
+    squad_id = -1,
+    mats = 0,
+    mats_price = 8
+}
+config.directory = string.format("%s\\moonloader\\config\\%s\\", getGameDirectory(), thisScript().name)
+config.init = function()
+    if not doesDirectoryExist("moonloader\\config") then
+        createDirectory("moonloader\\config")
+    end
+    if not doesDirectoryExist(config.directory) then
+        createDirectory(config.directory)
+    end
+    config.address = string.format("%s\\%s-%s.json", config.directory, getSampRpServerName(), getLocalPlayerNickname())
+    if not doesFileExist(config.address) then
+        config.save(config.default)
+    end
+    config.read()
+    for k,v in pairs(config.default) do
+        if config.data[k] == nil then
+            config.data[k] = v
+        end
+    end
+    config.save(config.data)
+end
+config.save = function(data)
+    local file, error = io.open(config.address, "w")
+    if file == nil then
+        addChatMessage(error)
+    end
+    file:write(encodeJson(data))
+    file:flush()
+    io.close(file)
+end
+config.read = function()
+    local readJson = function()
+        local file, error = io.open(config.address, "r")
+        if file then
+            config.data = decodeJson(file:read("*a"))
+            io.close(file)
+            if config.data == nil then
+                addChatMessage("Ошибка чтения конфига! Сбрасываю конфиг!")
+                config.save(config.default)
+            end
+        end
+    end
+    local result = pcall(readJson)
+    if not result then
+        addChatMessage("Ошибка чтения конфига! Сбрасываю конфиг!")
+        config.save(config.default)
+    end
+    if config.data == nil then
+        config.error = true
+        addChatMessage("Ошибка чтения конфига! Пробую ещё раз прочесть")
+        config.read()
+    else
+        if config.error then
+            addChatMessage("Конфиг был успешно загружен!")
+            config.error = false
+        end
+    end
+end
+
+-->> COUNTER
+counter = {}
+counter.reset = 0
+counter.weapon = {
+    ["SD Pistol"] = 34,
+    ["Desert Eagle"] = 63,
+    ["Shotgun"] = 90,
+    ["MP5"] = 180,
+    ["AK-47"] = 180,
+    ["M4"] = 300,
+    ["Rifle"] = 300
+}
+
+dialog = {}
+dialog.id = -1
+dialog.text = [[[0] SD Pistol [34 п. 34 м.]
+[1] Desert Eagle [21 п. 63 м.]
+[2] Shotgun [30 п. 90 м.]
+[3] MP5 [90 п. 180 м.]
+[4] AK-47 [90 п. 180 м.]
+[5] M4 [100 п. 300 м.]
+[6] Rifle [30 п. 300 м.]
+]]
+dialog.convertText = function(text)
+    text = string.format("%s\n \nВсего потрачено: %d матов\nСтоимость: %d вирт\n> Оплатить сейчас", text, config.data.mats, (config.data.mats * config.data.mats_price))
+    return text
+end
+
+-->> EVENTS
 function sampev.onServerMessage(color, message)
-	message = AnsiToUtf8(message)
-	if message:find(' Вы поставили (%d+) вирт на x(%d+)') then
-		bet, stavka = message:match(' Вы поставили (%d+) вирт на x(%d+)')
-		stavka_me = stavka
-		return { color, Utf8ToAnsi(message) }
-	end
-	if message:find(' Поздравляем! Вы выиграли (%d+) вирт') then
-		vin = message:match(' Поздравляем! Вы выиграли (%d+) вирт')
-		ini.profit[iniKey] = ini.profit[iniKey] + tonumber(vin) - tonumber(bet)
-		inicfg.save(ini, thisScript().name)
-		local S2 = mode1
-		mode1 = 0
-		return { color, Utf8ToAnsi(message) }
-	end
-	if message:find(' К сожалению, вы проиграли, выпал множитель: x(%d+)') then
-		stavka = message:match(' К сожалению, вы проиграли, выпал множитель: x(%d+)')
-		mode1 = mode1 + tonumber(bet)
-		ini.profit[iniKey] = ini.profit[iniKey] - tonumber(bet)
-		inicfg.save(ini, thisScript().name)
-		if auto ~= 0 then
-			if auto == 1 then
-				SetBet = (mode1 + plus + tonumber(bet)) / tonumber(stavka_me)
-			end
-			if auto == 2 then
-				SetBet = tonumber(bet) + 1000
-			end
-			if cost < SetBet and SetBet <= tonumber(max) then
-				cost = SetBet
-				gamer = 1
-				sendKey(16)
-			end
-		end
-		return { color, Utf8ToAnsi(message) }
-	end
+    if message:find("%[Офис%]{FFFFFF} Вы взяли {00FFBF}(.+) %(%d+ .+%) {FFFFFF}с оружейного шкафа офиса!") then
+        local weapon = message:match("%[Офис%]{FFFFFF} Вы взяли {00FFBF}(.+) %(%d+ .+%) {FFFFFF}с оружейного шкафа офиса!")
+        config.data.mats = config.data.mats + counter.weapon[weapon]
+        config.save(config.data)
+    end
+    if message:find(" Операция выполнена") and os.time() - counter.reset <= 2 then
+        addChatMessage("Счетчик материалов обнулен!")
+        config.data.mats = 0
+        config.save(config.data)
+    end
+    if message:find(" Вы не в сообществе") and os.time() - counter.reset <= 2 then
+        addChatMessage("Укажите ID сообщества командой /squadid [ID]")
+    end
 end
-
 function sampev.onShowDialog(dialogId, style, title, button1, button2, text)
-	title = AnsiToUtf8(title)
-	text = AnsiToUtf8(text)
-	if gamer == 1 and string.find(title, 'Выбор множителя') then
-		lua_thread.create(function(dialogId)
-			wait(300)
-			local sendList = { [2] = 0, [4] = 1, [8] = 2, [16] = 3, [32] = 4 }
-			sampSendDialogResponse(dialogId, 1, sendList[multiplier], string.format('[%d] x%d', sendList[multiplier], multiplier))
-			gamer = 2
-		end, dialogId)
-		return false
-	end
-	if gamer == 2 and title:find('Ввод параметра') and text:find('Укажите ставку') then
-		lua_thread.create(function(dialogId)
-			wait(300)
-			sampSendDialogResponse(dialogId, 1, 0, math.ceil(cost))
-			gamer = 0
-		end, dialogId)
-		return false
-	end
+    if title == "Меню" and text == dialog.text then
+        dialog.id = dialogId
+        text = dialog.convertText(text)
+        return { dialogId, style, title, button1, button2, text }
+    end
+end
+function sampev.onSendDialogResponse(dialogId, button, listboxId, input)
+    if dialog.id == dialogId and listboxId == 10 and button == 1 then
+        counter.reset = os.time()
+        sampSendChat("/squad bank "..config.data.squad_id.." "..(config.data.mats * config.data.mats_price))
+        return false
+    end
+    dialog.id = -1
 end
 
-function false0_move1_click2(text, posX, posY)
-	renderFontDrawText(font, text, posX, posY, 0xFFFFFFFF)
-	local textLenght = renderGetFontDrawTextLength(font, text)
-	local textHeight = renderGetFontDrawHeight(font)
-	local curX, curY = getCursorPos()
-	if curX >= posX and curX <= posX + textLenght and curY >= posY and curY <= posY + textHeight then
-		renderFontDrawText(font, text, posX, posY, 0xFFbababa)
-		if isKeyJustPressed(1) then
-			return 2
-		else
-			return 1
-		end
-	else
-		return 0
-	end
+-->> NEW FUNCTION
+function getLocalPlayerNickname()
+    return sampGetPlayerNickname(select(2, sampGetPlayerIdByCharHandle(PLAYER_PED)))
 end
-
-function sendKey(key)
-    local _, myId = sampGetPlayerIdByCharHandle(PLAYER_PED)
-    local data = allocateMemory(68)
-    sampStorePlayerOnfootData(myId, data)
-    setStructElement(data, 4, 2, key, false)
-    sampSendOnfootData(data)
-    freeMemory(data)
+function getServerAddress()
+    local ip, port = sampGetCurrentServerAddress()
+    return string.format("%s:%s", ip, port)
 end
-
 function getSampRpServerName()
     local result = ""
     local server = sampGetCurrentServerName():gsub("|", "")
-    local server_find = { "02", "Two", "Revo", "Legacy", "Classic", "Under" }
+    local server_find = { "02", "Two", "Revo", "Legacy", "Classic" }
     for i = 1, #server_find do
         if server:find(server_find[i]) then
             result = server_find[i]
@@ -286,9 +172,70 @@ function getSampRpServerName()
     end
     return result
 end
+function convertTableToString(table)
+    local result = ""
+    for i = 1, #table do
+        result = string.format("%s%s\n", result, table[i])
+    end
+    return result
+end
+function start_dialog(menu, put) -- module by trefa & modify (put & list in [])
+    function _dialog(menu, id, outs, put)
+        sampShowDialog(id, menu.settings.title, tbl_split(menu.settings.style, menu, menu.settings.forward ,menu.settings.backwards ,menu.settings.score), menu.settings.btn1, (menu.settings.btn2 ~= nil and menu.settings.btn2 or _), menu.settings.style)
+            repeat
+                wait(0)
+                if put ~= nil and sampIsDialogActive() then
+                    sampSetCurrentDialogEditboxText(put)
+                    put = nil
+                end
+                local result, button, list, input = sampHasDialogRespond(id)
+                if result then
+                    local out, outs = menu[((menu.settings.style == 0 or menu.settings.style == 1 or menu.settings.style == 3) and 1 or ((list + 1) > #menu[1] and 2 or 1))][((menu.settings.style == 0 or menu.settings.style == 1 or menu.settings.style == 3) and 1 or ((list + 1) > #menu[1] and (list - #menu[1]) + 1  or list + 1))].click(button, list, input, outs)
+                    if type(out) == "table" then
+                        return _dialog(out, id - 1, outs, put)
+                    elseif type(out) == "boolean" then
+                        if not out then
+                            return out
+                        end
+                            return _dialog(menu, id, outs, put)
+                    end
+                end
+            until result
+    end
 
--->> UPDATE MODULE
+    function tbl_split(style, tbl, forward ,backwards ,score)
+        if style == 2 or style == 4 or style == 5 then
+            text = (style == 5 and tbl[1].text.."\n" or "")
+            for i, val in ipairs(tbl[1]) do
+                text = text..""..forward..""..(score and "["..(i-1).."] " or "")..""..val.title..""..backwards
+            end
+            if tbl[2] ~= nil then
+                for _, val in ipairs(tbl[2]) do
+                    text = text..""..forward..""..val.title..""..backwards
+                end
+            end
+            return text
+        end
+        return tbl[1].text
+    end
 
+    return _dialog(menu, 1337, outs, put)
+end
+function getNicknamesOnline()
+    local result = {}
+    for i = 0, sampGetMaxPlayerId(false) do
+        if sampIsPlayerConnected(i) or select(2, sampGetPlayerIdByCharHandle(PLAYER_PED)) == i then
+            result[sampGetPlayerNickname(i)] = i
+        end
+    end
+    return result
+end
+function addChatMessage(text)
+    local tag = string.format("{667dff}[%s]{FFFFFF} ", thisScript().name)
+    sampAddChatMessage(tag..text, 0xFFFFFFFF)
+end
+
+-->> UPDATE
 function openURL(url, fpath)
     local text = ""
     local file_download = false
@@ -331,16 +278,10 @@ function openURL(url, fpath)
     return text
 end
 
-
-function addChatMessage(text)
-    local tag = string.format("{667dff}[%s]{FFFFFF} ", thisScript().name)
-    sampAddChatMessage(tag..text, 0xFFFFFFFF)
-end
-
 script_update = {
-    version_url = "http://git.deadpoo.net/rubin/WheelFortune/raw/branch/master/version",
-    script_url = "http://git.deadpoo.net/rubin/WheelFortune/raw/branch/master/WheelFortune.lua",
-    changelog_url = "http://git.deadpoo.net/rubin/WheelFortune/raw/branch/master/changelog",
+    version_url = "http://git.deadpoo.net/rubin/squad-mats/raw/branch/master/version",
+    script_url = "http://git.deadpoo.net/rubin/squad-mats/raw/branch/master/squad-mats.lua",
+    changelog_url = "http://git.deadpoo.net/rubin/squad-mats/raw/branch/master/changelog",
     address_ini = string.format("rubin-mods-updates\\%s.ini", thisScript().name),
     main = function()
         if not doesDirectoryExist("moonloader\\config\\rubin-mods-updates") then
@@ -365,7 +306,7 @@ script_update = {
             local result, text = pcall(openURL, script_update.version_url, fpath)
             if result then
                 ini.settings.server_version = text
-                if text ~= "" and text ~= thisScript().version then
+                if text ~= "" and not string.find(text, thisScript().version) then
                     addChatMessage( string.format("Вышла новая версия '%s'. Текущая: '%s'", text, thisScript().version) )
                     if ini.settings.auto_update then
                         addChatMessage( string.format("Автообновление скрипта включено. Процесс запущен!") )
@@ -384,7 +325,7 @@ script_update = {
             local fpath = os.tmpname()
             local result, text = pcall(openURL, script_update.version_url, fpath)
             if result then
-                if text ~= "" and text ~= thisScript().version then
+                if text ~= "" and not string.find(text, thisScript().version) then
                     addChatMessage( string.format("Вышла новая версия '%s'. Текущая: '%s'", text, thisScript().version) )
                     local fpath = os.tmpname()
                     local result, text = pcall(openURL, script_update.script_url, fpath)
@@ -451,7 +392,7 @@ script_update = {
                             script_update.menu.ini[#script_update.menu.ini+1] = address
                             text = string.format("%s%s\n", text, string.format("%s\t%s%s", ini.settings.script_name, (ini.settings.version == ini.settings.server_version and "{59fc30}" or "{ff0000}"),ini.settings.version))
                             script_update.menu.dialog[#script_update.menu.dialog+1] = function(data)
-                            	script_update.menu2.show(data)
+                               script_update.menu2.show(data)
                             end
                         end
                     end
@@ -519,7 +460,6 @@ script_update = {
 -->> table path example { "sampev", "onShowDialog" }
 -->> encoding options nil | AnsiToUtf8 | Utf8ToAnsi
 _utf8 = load([=[return function(utf8_func, in_encoding, out_encoding); if encoding == nil then; encoding = require("encoding"); encoding.default = "CP1251"; u8 = encoding.UTF8; end; if type(utf8_func) ~= "table" then; return false; end; if AnsiToUtf8 == nil or Utf8ToAnsi == nil then; AnsiToUtf8 = function(text); return u8(text); end; Utf8ToAnsi = function(text); return u8:decode(text); end; end; if _UTF8_FUNCTION_SAVE == nil then; _UTF8_FUNCTION_SAVE = {}; end; local change_var = "_G"; for s = 1, #utf8_func do; change_var = string.format('%s["%s"]', change_var, utf8_func[s]); end; if _UTF8_FUNCTION_SAVE[change_var] == nil then; _UTF8_FUNCTION = function(...); local pack = table.pack(...); readTable = function(t, enc); for k, v in next, t do; if type(v) == 'table' then; readTable(v, enc); else; if enc ~= nil and (enc == "AnsiToUtf8" or enc == "Utf8ToAnsi") then; if type(k) == "string" then; k = _G[enc](k); end; if type(v) == "string" then; t[k] = _G[enc](v); end; end; end; end; return t; end; return table.unpack(readTable({_UTF8_FUNCTION_SAVE[change_var](table.unpack(readTable(pack, in_encoding)))}, out_encoding)); end; local text = string.format("_UTF8_FUNCTION_SAVE['%s'] = %s; %s = _UTF8_FUNCTION;", change_var, change_var, change_var); load(text)(); _UTF8_FUNCTION = nil; end; return true; end]=])
-
 function utf8(...)
     pcall(_utf8(), ...)
 end
@@ -530,10 +470,7 @@ utf8({ "sampAddChatMessage" }, "Utf8ToAnsi")
 utf8({ "print" }, "Utf8ToAnsi")
 utf8({ "renderGetFontDrawTextLength" }, "Utf8ToAnsi")
 utf8({ "renderFontDrawText" }, "Utf8ToAnsi")
-utf8({ "sampSetCurrentDialogEditboxText" }, "Utf8ToAnsi")
-utf8({ "sampCreate3dTextEx" }, "Utf8ToAnsi")
-utf8({ "sampCreate3dText" }, "Utf8ToAnsi")
-utf8({ "sampSet3dTextString" }, "Utf8ToAnsi")
-utf8({ "sampGetDialogText" }, nil, "AnsiToUtf8")
-utf8({ "sampGetDialogCaption" }, nil, "AnsiToUtf8")
 utf8({ "sampHasDialogRespond" }, nil, "AnsiToUtf8")
+utf8({ "sampev", "onServerMessage" }, "AnsiToUtf8", "Utf8ToAnsi")
+utf8({ "sampev", "onShowDialog" }, "AnsiToUtf8", "Utf8ToAnsi")
+utf8({ "sampev", "onSendDialogResponse" }, "AnsiToUtf8", "Utf8ToAnsi")

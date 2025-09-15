@@ -1,6 +1,7 @@
-local script_name = 'mafia-tools'
-local script_author = 'Serhiy_Rubin'
-local script_version = '05.07.2025'
+script_name('mafia-tools')
+script_author("Serhiy_Rubin")
+script_version("05.07.2025")
+
 sampev = require 'samp.events'
 inicfg = require "inicfg"
 dlstatus = require("moonloader").download_status

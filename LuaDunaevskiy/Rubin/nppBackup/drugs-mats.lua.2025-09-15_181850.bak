@@ -1,6 +1,6 @@
-local script_name = 'drugs-mats'
-local script_author = 'Serhiy_Rubin'
-local script_version = '20.02.2023'
+script_name('drugs-mats')
+script_author("Serhiy_Rubin")
+script_version("20.02.2023")
 sampev, vkeys, inicfg = require 'lib.samp.events', require 'lib.vkeys', require 'inicfg'
 local check_inventory, drugs_timer, not_drugs_timer, renderText, d = 1, 0, false, {}, {}
 dlstatus = require("moonloader").download_status

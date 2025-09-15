@@ -1,6 +1,6 @@
-local script_name = 'corn-hud'
-local script_author = 'Serhiy_Rubin'
-local script_version = '30.06.2023'
+script_name('corn-hud')
+script_author("Serhiy_Rubin")
+script_version("30.06.2023")
 require 'lib.sampfuncs'
 require 'lib.moonloader'
 dlstatus = require("moonloader").download_status

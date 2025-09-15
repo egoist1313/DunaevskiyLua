@@ -1,6 +1,3 @@
-local script_name = 'xmas-clicker'
-local script_author = 'Serhiy_Rubin'
-local script_version = '1.00'
 clicker = false
 wait_point = 0
 wait_clicker = 100
