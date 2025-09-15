@@ -1,6 +1,6 @@
-local script_name = 'ProdHUD'
-local script_author = 'Serhiy_Rubin'
-local script_version = '23.11.2024'
+script_name('ProdHUD')
+script_authors("rubin")
+script_version("23.11.2024")
 samp = require 'samp.events'
 local inicfg = require 'inicfg'
 dlstatus = require("moonloader").download_status
