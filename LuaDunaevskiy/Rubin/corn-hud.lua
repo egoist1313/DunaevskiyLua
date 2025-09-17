@@ -22,7 +22,7 @@ coord = {
 function main()
 	if not isSampLoaded() or not isSampfuncsLoaded() then return end
 	while not isSampAvailable() do wait(0) end
-    lua_thread.create(script_update.main)
+    --lua_thread.create(script_update.main)
     repeat wait(0) until sampGetCurrentServerName() ~= "SA-MP"
     repeat wait(0) until sampGetCurrentServerName():find("Samp%-Rp.Ru") or sampGetCurrentServerName():find("SRP")
     server = sampGetCurrentServerName():gsub("|", "")

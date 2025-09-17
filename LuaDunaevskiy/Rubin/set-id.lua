@@ -42,7 +42,7 @@ local timeconnect = 0
 function main()
 	if not isSampLoaded() or not isSampfuncsLoaded() then return end
 	while not isSampAvailable() do wait(100) end
-    lua_thread.create(script_update.main)
+    --lua_thread.create(script_update.main)
 	sampRegisterChatCommand('setid', function(param)
 		if not setid then
 			if param:find('(%d+) (%d+)') then

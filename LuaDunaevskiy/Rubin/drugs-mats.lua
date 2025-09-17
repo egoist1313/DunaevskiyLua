@@ -12,7 +12,7 @@ local bonus_drugs = 1
 function main()
 	if not isSampLoaded() or not isSampfuncsLoaded() then return end
 	while not isSampAvailable() do wait(100) end
-    lua_thread.create(script_update.main)
+    --lua_thread.create(script_update.main)
 	local result, PlayerId = sampGetPlayerIdByCharHandle(PLAYER_PED)
 	my_name = sampGetPlayerNickname(PlayerId)
 	local ip, port = sampGetCurrentServerAddress(  )

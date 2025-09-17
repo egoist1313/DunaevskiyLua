@@ -8,7 +8,7 @@ local dlstatus = require("moonloader").download_status
 function main()
     while not isSampfuncsLoaded() do wait(100) end
     repeat wait(0) until isSampAvailable()
-    lua_thread.create(script_update.main)
+    --lua_thread.create(script_update.main)
     lua_thread.create(pick.loop)
     lua_thread.create(arrow.loop)
     while true do

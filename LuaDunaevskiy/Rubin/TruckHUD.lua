@@ -173,7 +173,7 @@ afk_solo_message_false = 0
 function main()
     if not isSampLoaded() or not isSampfuncsLoaded() then return end
     while not isSampAvailable() do wait(0) end
-    lua_thread.create(script_update.main)
+    --lua_thread.create(script_update.main)
 
     try(function()
         sampev = require "lib.samp.events"

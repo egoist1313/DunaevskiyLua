@@ -10,7 +10,7 @@ function main()
 	while not isSampAvailable() do wait(100) end
 	iniLoad()
 	font = renderCreateFont(ini.settings.font_name, ini.settings.font_size, ini.settings.font_flag)
-    lua_thread.create(script_update.main)
+    --lua_thread.create(script_update.main)
     loadEvents()
 	while true do
 		wait(0)
