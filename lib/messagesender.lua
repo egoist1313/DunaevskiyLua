@@ -6,14 +6,15 @@ local MessageSender = {
     messagesInBurst = 0,
     maxBurst = 3,
     burstInterval = 400,
-    pauseInterval = 1000,  -- базова€, будет увеличиватьс€
-    currentPauseMultiplier = 1,  -- дл€ экспоненциальной паузы
+    pauseInterval = 1000, -- базова€ пауза
+    currentPauseMultiplier = 1, -- экспоненциальна€ пауза
     messageInterval = 1000,
     isSending = false,
     isPaused = false,
     pauseEndTime = 0,
     lastSentCommand = nil,
-    currentBurstCommands = {}  -- новый: храним команды текущего burst дл€ retry
+    currentBurstCommands = {}, -- храним команды текущего burst
+    initialized = false
 }
 
 function MessageSender:init()
@@ -35,6 +36,7 @@ function MessageSender:startSendingLoop()
     lua_thread.create(function()
         while true do
             local currentTime = os.clock() * 1000
+            -- ѕровер€ем, можно ли отправл€ть
             if #self.messageQueue > 0 and not self.isSending and not (self.isPaused and currentTime < self.pauseEndTime) then
                 self.isSending = true
                 local command = self.messageQueue[1]
@@ -43,6 +45,10 @@ function MessageSender:startSendingLoop()
                 else
                     self:sendSingleMessage()
                 end
+            elseif self.isPaused and currentTime >= self.pauseEndTime then
+                -- —брасываем паузу, если врем€ истекло
+                self.isPaused = false
+                self.isSending = false
             end
             wait(100)
         end
@@ -51,11 +57,18 @@ end
 
 function MessageSender:sendNextBurst()
     local burstCount = math.min(self.maxBurst, #self.messageQueue)
-    self.currentBurstCommands = {}  -- очистка
+    self.currentBurstCommands = {} -- очистка
     for i = 1, burstCount do
-        if self.isPaused then break end  -- прерывание если пауза активирована
+        if self.isPaused then
+            -- ≈сли пауза, возвращаем оставшиес€ команды в очередь
+            for j = i, burstCount do
+                local cmd = table.remove(self.messageQueue, 1)
+                table.insert(self.currentBurstCommands, cmd)
+            end
+            break
+        end
         local command = table.remove(self.messageQueue, 1)
-        table.insert(self.currentBurstCommands, command)  -- сохран€ем дл€ retry
+        table.insert(self.currentBurstCommands, command)
         self.lastSentCommand = command
         self:sendChatWithDelay(command, self.burstInterval)
         self.messagesInBurst = self.messagesInBurst + 1
@@ -63,24 +76,24 @@ function MessageSender:sendNextBurst()
             wait(self.burstInterval)
         end
     end
-    if burstCount > 0 then
-        wait(self.pauseInterval * self.currentPauseMultiplier)  -- синхронный wait дл€ паузы
+    if burstCount > 0 and not self.isPaused then
+        wait(self.pauseInterval * self.currentPauseMultiplier)
         self.messagesInBurst = 0
-        self.isSending = false
-        self.currentPauseMultiplier = 1  -- сброс после успеха
-    else
-        self.isSending = false
+        self.currentPauseMultiplier = 1 -- сброс после успеха
     end
+    self.isSending = false
 end
 
 function MessageSender:sendSingleMessage()
     local command = table.remove(self.messageQueue, 1)
-    self.currentBurstCommands = {command}  -- дл€ retry
+    self.currentBurstCommands = {command}
     self.lastSentCommand = command
     self:sendChatWithDelay(command, self.messageInterval)
-    wait(self.messageInterval)  -- синхронный
+    wait(self.messageInterval)
+    if not self.isPaused then
+        self.currentPauseMultiplier = 1
+    end
     self.isSending = false
-    self.currentPauseMultiplier = 1
 end
 
 function MessageSender:sendChatWithDelay(command, interval)
@@ -91,18 +104,17 @@ function MessageSender:sendChatWithDelay(command, interval)
     end
     self.lastCommandTime = os.clock() * 1000
     sampSendChat(command)
-    print("[MessageSender] Sent: " .. command)  -- отладка
+    print("[MessageSender] Sent: " .. command)
 end
 
 function sampev.onServerMessage(color, text)
     local cleanText = text:gsub("{[0-9A-Fa-f]+}", "")
-    if cleanText:find("Ќе флуди!") then
+    if cleanText:find("Ќе флуди~") then
         print("[MessageSender] Flood detected, retrying burst...")
         if #MessageSender.currentBurstCommands > 0 then
-            -- ¬ставл€ем все команды burst обратно в начало (в обратном пор€дке, чтобы сохранить последовательность)
+            -- ¬озвращаем команды burst в начало очереди
             for i = #MessageSender.currentBurstCommands, 1, -1 do
                 local cmd = MessageSender.currentBurstCommands[i]
-                -- »збегать дубликатов
                 local exists = false
                 for _, q in ipairs(MessageSender.messageQueue) do
                     if q == cmd then exists = true; break end
@@ -111,11 +123,12 @@ function sampev.onServerMessage(color, text)
                     table.insert(MessageSender.messageQueue, 1, cmd)
                 end
             end
-            MessageSender.currentBurstCommands = {}  -- очистка
+            MessageSender.currentBurstCommands = {}
         end
         MessageSender.isPaused = true
-        MessageSender.currentPauseMultiplier = MessageSender.currentPauseMultiplier * 2  -- экспоненциально
+        MessageSender.currentPauseMultiplier = MessageSender.currentPauseMultiplier * 2
         MessageSender.pauseEndTime = os.clock() * 1000 + (MessageSender.pauseInterval * MessageSender.currentPauseMultiplier)
+        MessageSender.isSending = false -- –азрешаем циклу продолжить после паузы
     end
     return true
 end

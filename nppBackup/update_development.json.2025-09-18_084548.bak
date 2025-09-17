@@ -6,6 +6,6 @@
 		{"name": "textdraw.lua", "version": "0.1", "path": "LuaDunaevskiy/dev/textdraw.lua", "description": "Инфо от текстдравах", "command": "showtdid"}
 		
     ],
-    "allowedIPs": ["5.252.33.202", "141.95.72.156", "legacy.samp-rp.ru"],
+    "allowedIPs": ["5.252.33.202", "legacy.samp-rp.ru"],
     "allowedPlayer": "Alexandr_Dunaevskiy"
 }
