@@ -49,8 +49,10 @@ function MessageSender:startSendingLoop()
                 -- Сбрасываем паузу, если время истекло
                 self.isPaused = false
                 self.isSending = false
+                self.messagesInBurst = 0
+                self.currentPauseMultiplier = 1 -- сброс множителя после паузы
             end
-            wait(100)
+            wait(50) -- уменьшаем задержку для более быстрой реакции
         end
     end)
 end
@@ -110,14 +112,14 @@ end
 function sampev.onServerMessage(color, text)
     local cleanText = text:gsub("{[0-9A-Fa-f]+}", "")
     if cleanText:find("Не флуди~") then
-        print("[MessageSender] Flood detected, retrying burst...")
+        print("[MessageSender] Flood detected, pausing...")
         if #MessageSender.currentBurstCommands > 0 then
-            -- Возвращаем команды burst в начало очереди
+            -- Возвращаем команды burst в начало очереди, избегая дубликатов
             for i = #MessageSender.currentBurstCommands, 1, -1 do
                 local cmd = MessageSender.currentBurstCommands[i]
                 local exists = false
                 for _, q in ipairs(MessageSender.messageQueue) do
-                    if q == cmd then exists = true; break end
+                    if q == cmd then exists = true break end
                 end
                 if not exists then
                     table.insert(MessageSender.messageQueue, 1, cmd)
@@ -126,9 +128,9 @@ function sampev.onServerMessage(color, text)
             MessageSender.currentBurstCommands = {}
         end
         MessageSender.isPaused = true
-        MessageSender.currentPauseMultiplier = MessageSender.currentPauseMultiplier * 2
+        MessageSender.currentPauseMultiplier = math.min(MessageSender.currentPauseMultiplier * 2, 8) -- ограничиваем множитель
         MessageSender.pauseEndTime = os.clock() * 1000 + (MessageSender.pauseInterval * MessageSender.currentPauseMultiplier)
-        MessageSender.isSending = false -- Разрешаем циклу продолжить после паузы
+        MessageSender.isSending = false
     end
     return true
 end
