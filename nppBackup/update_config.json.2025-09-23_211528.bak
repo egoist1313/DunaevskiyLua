@@ -11,7 +11,7 @@
     {"name":"Speedometer.luac","version":"2.6","path":"LuaDunaevskiy/Speedometer.luac","description":"Модифицированный спидометр от Cosmo","command":"/speedometer","md5":"6cad057f346cede6ac1b40149fda0f30"},
     {"name":"pogoda.luac","version":"2.7","path":"LuaDunaevskiy/pogoda.luac","description":"Управление временем и погодой","command":"/den","md5":"fef26724b59cc2989a69beb6a896672c"},
 	{"name":"CEF.lua","version":"1.0","path":"LuaDunaevskiy/CEF.lua","description":"Временный костыль","command":"/cef","md5":""},
-    {"name":"update_updater.luac","version":"1.8.8","path":"/update_updater.luac","description":"Обновление","command":""}
+    {"name":"update_updater.luac","version":"1.7.8","path":"/update_updater.luac","description":"Обновление","command":""}
   ],
   "files": [
     {"name":"object_markers.txt","version":"1.0.1","path":"LuaDunaevskiy/object_markers.txt","run_after_download":false,"description":"Метки для карты охотника","md5":"77dfe0acc48f417c26e4ff040d1c4150"},
