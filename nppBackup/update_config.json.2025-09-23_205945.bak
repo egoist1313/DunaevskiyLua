@@ -17,7 +17,7 @@
     {"name":"object_markers.txt","version":"1.0.1","path":"LuaDunaevskiy/object_markers.txt","run_after_download":false,"description":"Метки для карты охотника","md5":"77dfe0acc48f417c26e4ff040d1c4150"},
     {"name":"passport_values.txt","version":"1.0.1","path":"LuaDunaevskiy/passport_values.txt","run_after_download":false,"description":"Список сумм для похищений","md5":"5f663de4284db408354332b870139e9b"},
     {"name":"VoskBladwin.exe","version":"1.0.0","path":"LuaDunaevskiy/VoskBladwin.exe","run_after_download":true,"description":"Приложение для голосового управления","md5":"96f60a5677bacefea028d87b6d5a4dbc"},
-	{"name":"SAMP-RP.exe","version":"1.0.0","path":"LuaDunaevskiy/SAMP-RP.exe","run_after_download":true,"description":"Небольшая замена js","md5":""}
+	{"name":"SAMP-RP.exe","version":"1.0.0","path":"LuaDunaevskiy/SAMP-RP.exe","run_after_download":true,"description":"Небольшая замена js","md5":"96f60a5677bacefea028d87b6d5a4dbc"}
   ],
   "updater": [
     {"name":"updater.luac","version":"1.5.1","path":"/updater.luac"}
