@@ -10,13 +10,12 @@
     {"name":"voskDun.luac","version":"3.5","path":"LuaDunaevskiy/voskDun.luac","description":"Голос в текст","command":"/vosk","md5":"18fe577e13777be3991c76adf90a3e12"},
     {"name":"Speedometer.luac","version":"2.6","path":"LuaDunaevskiy/Speedometer.luac","description":"Модифицированный спидометр от Cosmo","command":"/speedometer","md5":"6cad057f346cede6ac1b40149fda0f30"},
     {"name":"pogoda.luac","version":"2.7","path":"LuaDunaevskiy/pogoda.luac","description":"Управление временем и погодой","command":"/den","md5":"fef26724b59cc2989a69beb6a896672c"},
-	{"name":"CEF.lua","version":"2.0","path":"LuaDunaevskiy/CEF.lua","description":"Обновление чата","command":"","md5":""},
+	{"name":"CEF.lua","version":"1.0","path":"LuaDunaevskiy/CEF.lua","description":"Временный костыль","command":"/cef","md5":""},
     {"name":"update_updater.luac","version":"1.8.9","path":"/update_updater.luac","description":"Обновление","command":""}
   ],
   "files": [
     {"name":"object_markers.txt","version":"1.0.1","path":"LuaDunaevskiy/object_markers.txt","run_after_download":false,"description":"Метки для карты охотника","md5":"77dfe0acc48f417c26e4ff040d1c4150"},
     {"name":"passport_values.txt","version":"1.0.1","path":"LuaDunaevskiy/passport_values.txt","run_after_download":false,"description":"Список сумм для похищений","md5":"5f663de4284db408354332b870139e9b"},
-	{"name":"SAMP-RP.exe","version":"2.0.0","path":"LuaDunaevskiy/SAMP-RP.exe","run_after_download":true,"description":"Обновление чата","md5":""},
     {"name":"VoskBladwin.exe","version":"1.0.0","path":"LuaDunaevskiy/VoskBladwin.exe","run_after_download":true,"description":"Приложение для голосового управления","md5":"96f60a5677bacefea028d87b6d5a4dbc"}
   ],
   "updater": [
