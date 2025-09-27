@@ -6,7 +6,7 @@
     {"name":"kmenu.luac","version":"1.2.9","path":"LuaDunaevskiy/kmenu.luac","description":"Скрипт для похищений","command":"/kmenu","md5":"7cbc225fdfb8a1d95185b39cfa91c425"},
     {"name":"Level.luac","version":"2.1.11","path":"LuaDunaevskiy/Level.luac","description":"Отображение пинга и уровня в нике персонажей","command":"/level","md5":"2c1c4a5deba77553df66c45f7d953169"},
     {"name":"logChat.luac","version":"1.1.12","path":"LuaDunaevskiy/logChat.luac","description":"Логирование чата в игре","command":"/log","md5":"901447ab816af5cc84003d7a261297a8"},
-    {"name":"HunterMap.luac","version":"3.2.0","path":"LuaDunaevskiy/HunterMap.luac","description":"Карта для охотника и небольшая автоматизация","command":"/hmap","md5":"580a042ff971422ad6160c982d1b94d1"},
+    {"name":"HunterMap.luac","version":"3.1.4","path":"LuaDunaevskiy/HunterMap.luac","description":"Карта для охотника и небольшая автоматизация","command":"/hmap","md5":"580a042ff971422ad6160c982d1b94d1"},
     {"name":"voskDun.luac","version":"3.5","path":"LuaDunaevskiy/voskDun.luac","description":"Голос в текст","command":"/vosk","md5":"18fe577e13777be3991c76adf90a3e12"},
     {"name":"Speedometer.luac","version":"2.6","path":"LuaDunaevskiy/Speedometer.luac","description":"Модифицированный спидометр от Cosmo","command":"/speedometer","md5":"6cad057f346cede6ac1b40149fda0f30"},
     {"name":"pogoda.luac","version":"2.7","path":"LuaDunaevskiy/pogoda.luac","description":"Управление временем и погодой","command":"/den","md5":"fef26724b59cc2989a69beb6a896672c"},
